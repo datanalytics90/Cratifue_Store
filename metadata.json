@@ -1,0 +1,6 @@
+{
+  "name": "Craftifue",
+  "description": "An elegant, AI-powered artisan marketplace and predictive data dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
