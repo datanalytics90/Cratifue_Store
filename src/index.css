@@ -5,16 +5,16 @@
   --font-serif: "Fraunces", Georgia, serif;
   --font-sans: "Hanken Grotesk", system-ui, sans-serif;
   
-  --color-brand-paper: #F6F1E7;
-  --color-brand-paper-dark: #EFE7D6;
-  --color-brand-ink: #2A211B;
-  --color-brand-ink-soft: #6B5E52;
-  --color-brand-clay: #C4683B;
-  --color-brand-clay-deep: #9E4F2A;
-  --color-brand-teal: #1F5A58;
-  --color-brand-ochre: #D99A2B;
-  --color-brand-sage: #8A9A7B;
-  --color-brand-line: #DDD2BF;
+  --color-brand-paper: #FFFFFF;
+  --color-brand-paper-dark: #F0F6FA;
+  --color-brand-ink: #071E26;
+  --color-brand-ink-soft: #4F646F;
+  --color-brand-clay: #007799;
+  --color-brand-clay-deep: #004D66;
+  --color-brand-teal: #1B4D5C;
+  --color-brand-ochre: #4FC3F7;
+  --color-brand-sage: #6B8E9B;
+  --color-brand-line: #D0E4EC;
 }
 
 body {
@@ -58,12 +58,12 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #EFE7D6;
+  background: #F0F6FA;
 }
 ::-webkit-scrollbar-thumb {
-  background: #C4683B;
+  background: #007799;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9E4F2A;
+  background: #004D66;
 }

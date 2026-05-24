@@ -802,14 +802,35 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                     </div>
                   </div>
 
+                   <div>
+                    <label className="block text-xs font-sans text-brand-ink-soft mb-1">Select and Upload Brand Logo File</label>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            if (typeof reader.result === 'string') {
+                              setLogoInput(reader.result);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full bg-brand-paper text-brand-ink-soft text-xs border border-dashed border-brand-line p-3 rounded-xl cursor-pointer hover:bg-brand-paper-dark transition-all focus:outline-none font-mono"
+                    />
+                  </div>
+
                   <div>
-                    <label className="block text-xs font-sans text-brand-ink-soft mb-1">Upload Brand Logo (Paste Base64 or Image Link)</label>
+                    <label className="block text-xs font-sans text-brand-ink-soft mb-1">OR Paste Brand Logo (Image Link / Base64 Data)</label>
                     <textarea 
                       value={logoInput}
                       onChange={(e) => setLogoInput(e.target.value)}
                       placeholder="e.g. https://images.unsplash.com/... or paste image Base64 data schema"
                       className="w-full bg-brand-paper border border-brand-line p-2.5 text-xs rounded-xl focus:outline-none font-mono"
-                      rows={4}
+                      rows={2}
                     />
                   </div>
 

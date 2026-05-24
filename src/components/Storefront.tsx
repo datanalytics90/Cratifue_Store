@@ -102,6 +102,21 @@ export default function Storefront({
   const [activeRegion, setActiveRegion] = useState<'bastar' | 'khurda' | 'chanderi'>('bastar');
   const [activeMaterial, setActiveMaterial] = useState<string>('brass');
   const [spotlightArtisan, setSpotlightArtisan] = useState<string>('suman');
+  
+  // Interactive Home Accessories & Extras
+  const [activeHeroIndex, setActiveHeroIndex] = useState<number>(0);
+  const [heroProductIndex, setHeroProductIndex] = useState<number>(0);
+  const [testimonialIndex, setTestimonialIndex] = useState<number>(0);
+  const [newsletterEmail, setNewsletterEmail] = useState<string>('');
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState<boolean>(false);
+  const [activeRoomAccent, setActiveRoomAccent] = useState<string>('dining');
+  const [giftRecipient, setGiftRecipient] = useState<string>('mother');
+  const [giftBudget, setGiftBudget] = useState<string>('any');
+  const [giftVibe, setGiftVibe] = useState<string>('any');
+  const [giftFinderResults, setGiftFinderResults] = useState<Product[] | null>(null);
+  const [giftFinderLoading, setGiftFinderLoading] = useState<boolean>(false);
+  const [activeArtForm, setActiveArtForm] = useState<string>('dhokra');
+  const [selectedReviewFilter, setSelectedReviewFilter] = useState<string>('all');
 
   /* ------------------------------------------------------------------ */
   /* CART / COMMERCE ACTIONS                                             */
@@ -389,6 +404,24 @@ export default function Storefront({
   return (
     <div className="min-h-screen bg-brand-paper pb-16 paper-grain">
       
+      {/* EXCLUSIVELANE-STYLE PREMIUM TOP PROMOTION TICKER */}
+      <div className="bg-brand-teal text-brand-paper py-2 px-4 text-center text-xs select-none relative overflow-hidden flex items-center justify-between border-b border-white/5 md:px-8">
+        <div className="hidden sm:flex items-center space-x-1">
+          <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <span className="text-[10px] uppercase font-mono tracking-wider text-brand-paper/70">Cluster Direct Live Trade</span>
+        </div>
+        
+        {/* Animated Slide for Announcement items (cycles in design) */}
+        <div className="flex-1 text-center font-sans font-medium tracking-wide flex justify-center items-center space-x-2 text-[11px] md:text-xs">
+          <Sparkles className="w-3.5 h-3.5 text-brand-ochre shrink-0 animate-spin" />
+          <span>✨ FLAT 10% OFF on elite Studio Ceramics & Dhokra masterpieces! Use code <strong>CRAFT10</strong> | Free Shipping over ₹1,499 ⚡</span>
+        </div>
+
+        <div className="hidden md:flex items-center space-x-4 text-[10px] uppercase font-mono text-brand-paper/85 tracking-widest">
+          <span>🇮🇳 Handcrafted with pride</span>
+        </div>
+      </div>
+      
       {/* -------------------------------------------------------------- */}
       {/* HEADER NAVIGATION BAR WITH DYNAMIC LOGO BRADING                 */}
       {/* -------------------------------------------------------------- */}
@@ -485,74 +518,176 @@ export default function Storefront({
         {currentView === 'home' && (
           <div className="space-y-16">
             
-            {/* 1. GRACEFUL PREMIUM EDITORIAL HERO BANNER WITH MOTION & ATTRACTIVE IMAGE */}
-            <motion.section 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="relative rounded-3xl overflow-hidden min-h-[550px] flex items-center justify-center text-center p-8 sm:p-16 border border-brand-line shadow-xl group"
-              style={{
-                backgroundImage: `url('https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=1600')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            >
-              {/* Luxury dark bronze translucent vignette overlay */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-[#1A110B]/90 z-0 group-hover:opacity-95 transition-all duration-700" />
-              
-              {/* Delicate organic overlay accent lines representing the craft lattice */}
-              <div className="absolute inset-0 opacity-15 border-[12px] border-brand-paper m-4 rounded-[20px] pointer-events-none z-10" />
+            {/* 1. REDESIGNED PREMIUM HERO: RECTANGULAR BOX WITH RELATIVE PRODUCTS SLIDER */}
+            <div className="bg-gradient-to-br from-white via-[#F0F6FA] to-[#E2EEF2] border border-brand-line rounded-3xl p-6 sm:p-8 lg:p-10 shadow-lg relative overflow-hidden">
+              {/* Soft modern glowing vectors on the background */}
+              <div className="absolute top-0 right-0 w-96 h-96 bg-[#4FC3F7]/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-[#007799]/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative z-10 max-w-3xl space-y-6 flex flex-col items-center">
-                <motion.span 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-xs font-sans text-brand-clay bg-brand-paper/95 border border-brand-clay/35 px-4.5 py-1.5 rounded-full font-bold uppercase tracking-widest flex items-center mb-2 shadow-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-brand-ochre mr-1.5 animate-pulse" /> Direct Cluster Preservations
-                </motion.span>
-                
-                <motion.h1 
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="font-serif text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-tight uppercase font-medium"
-                >
-                  Authenticity <br />
-                  <span className="font-serif italic font-light text-brand-paper text-3xl sm:text-4xl lg:text-5xl lowercase">Untouched.</span>
-                </motion.h1>
-                
-                <motion.p 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="font-serif text-sm sm:text-base md:text-lg italic text-brand-paper/90 max-w-xl mx-auto leading-relaxed border-t border-brand-paper/20 pt-4"
-                >
-                  "Direct support, direct pricing. We preserve lost-wax metalworks and ancient vitrified studio clays directly at regional craft clusters."
-                </motion.p>
-                
-                <motion.div 
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="pt-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full sm:w-auto"
-                >
-                  <button 
-                    onClick={() => { setSelectedPillar(null); setCurrentView('listing'); }}
-                    className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper px-8 py-3.5 rounded-xl text-sm font-sans font-bold transition-all shadow-lg flex items-center justify-center active:scale-95 duration-200 cursor-pointer"
-                  >
-                    Browse Global Catalog
-                  </button>
-                  <button 
-                    onClick={() => setCurrentView('lookbook')}
-                    className="bg-brand-paper/10 hover:bg-brand-paper/20 text-white border border-brand-paper/30 backdrop-blur-md px-8 py-3.5 rounded-xl text-sm font-sans font-bold transition-all flex items-center justify-center active:scale-95 duration-200 cursor-pointer"
-                  >
-                    Explore 3D Lookbook
-                  </button>
-                </motion.div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch relative z-10">
+                {/* Left Side: Elegant Narrative Text Box */}
+                <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
+                  <div className="space-y-4">
+                    <div className="inline-flex items-center space-x-2 bg-white/95 border border-[#4FC3F7]/55 px-3.5 py-1.5 rounded-full shadow-xs">
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#007799] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#007799]"></span>
+                      </span>
+                      <span className="text-[10px] font-sans font-extrabold text-[#007799] uppercase tracking-wider">
+                        Direct-From-Cluster Trade • 100% Authentic Indian Craft
+                      </span>
+                    </div>
+
+                    <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl tracking-normal leading-tight text-brand-ink uppercase font-bold">
+                      Grounded Luxury.<br />
+                      <span className="font-serif italic font-light text-[#007799] lowercase text-2xl sm:text-3xl lg:text-4xl block mt-1">
+                        Sourced directly from regional karkhanas.
+                      </span>
+                    </h1>
+
+                    <p className="text-xs sm:text-sm text-brand-ink-soft leading-relaxed max-w-xl font-sans">
+                      Skip machine-stamped duplicates. Own vitrified lead-free Studio Glazes and hand-poured lost-wax bronze castings, molded through centuries of parent-to-child oral lineage. Verified from Bastar, Khurda, and Chanderi.
+                    </p>
+                  </div>
+
+                  {/* Trust Pillars Checklist */}
+                  <div className="grid grid-cols-3 gap-4 border-t border-brand-line/60 pt-6">
+                    <div>
+                      <span className="block font-serif font-black text-lg text-brand-clay">78%+</span>
+                      <span className="text-[9px] uppercase font-mono text-brand-ink-soft tracking-wider font-bold">Direct to Artisan</span>
+                    </div>
+                    <div>
+                      <span className="block font-serif font-black text-lg text-brand-clay">Stoneware</span>
+                      <span className="text-[9px] uppercase font-mono text-brand-ink-soft tracking-wider font-bold">1200°C Woodfired</span>
+                    </div>
+                    <div>
+                      <span className="block font-serif font-black text-lg text-brand-clay">Oral Blueprint</span>
+                      <span className="text-[9px] uppercase font-mono text-brand-ink-soft tracking-wider font-bold">Generational Craft</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    <button 
+                      onClick={() => { setSelectedPillar(null); setCurrentView('listing'); }}
+                      className="bg-brand-clay hover:bg-brand-clay-deep text-white px-8 py-3.5 rounded-xl text-xs font-sans font-bold transition-all shadow-md flex items-center justify-center active:scale-95 duration-200 cursor-pointer"
+                    >
+                      Browse Indian Registry
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('lookbook')}
+                      className="bg-white hover:bg-brand-paper-dark text-brand-ink border border-brand-line px-8 py-3.5 rounded-xl text-xs font-sans font-bold transition-all flex items-center justify-center active:scale-95 duration-200 cursor-pointer shadow-xs"
+                    >
+                      3D Interactive Lookbook
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Side: Relative Products Slider Container (Attractive Product cards) */}
+                <div className="lg:col-span-5 bg-white border border-brand-line rounded-3xl p-5 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-center pb-3 border-b border-brand-line">
+                      <span className="text-[10px] uppercase font-mono font-black text-brand-clay tracking-wider">
+                        Curator Spotlight ({heroProductIndex + 1}/{db.products.filter(p => p.price <= 400000).slice(0, 5).length})
+                      </span>
+                      
+                      {/* Active Two-Way Arrows for slider */}
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => {
+                            const count = db.products.filter(p => p.price <= 400000).slice(0, 5).length;
+                            setHeroProductIndex(prev => (prev === 0 ? count - 1 : prev - 1));
+                          }}
+                          className="p-1 px-2.5 bg-brand-paper-dark hover:bg-brand-line text-brand-ink border border-brand-line rounded-lg text-xs font-serif font-bold transition-all hover:scale-105 active:scale-90 cursor-pointer"
+                          title="Previous Craft"
+                        >
+                          ←
+                        </button>
+                        <button
+                          onClick={() => {
+                            const count = db.products.filter(p => p.price <= 400000).slice(0, 5).length;
+                            setHeroProductIndex(prev => (prev === count - 1 ? 0 : prev + 1));
+                          }}
+                          className="p-1 px-2.5 bg-brand-paper-dark hover:bg-brand-line text-brand-ink border border-brand-line rounded-lg text-xs font-serif font-bold transition-all hover:scale-105 active:scale-90 cursor-pointer"
+                          title="Next Craft"
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      {(() => {
+                        const featuredList = db.products.filter(p => p.price <= 400000).slice(0, 5);
+                        const currentC = featuredList[heroProductIndex];
+                        if (!currentC) return <div className="text-xs text-brand-ink-soft">Fetching masterpieces catalog...</div>;
+
+                        return (
+                          <div className="space-y-4">
+                            {/* Attractive Craft Image Block */}
+                            <div className="relative h-44 sm:h-48 bg-brand-paper-dark border border-brand-line rounded-2xl overflow-hidden group">
+                              <img
+                                src={currentC.images[0]?.url || 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=600'}
+                                alt={currentC.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                referrerPolicy="no-referrer"
+                              />
+                              <span className="absolute top-2.5 left-2.5 bg-brand-clay text-white text-[9px] uppercase font-mono px-2 py-0.5 rounded font-bold shadow-xs">
+                                {currentC.pillar === 'dining' ? '🍽️ Dinnerware' : currentC.pillar === 'lighting' ? '💡 Lamp Forge' : '🏺 Artistry'}
+                              </span>
+                            </div>
+
+                            {/* Details */}
+                            <div className="space-y-1">
+                              <div className="flex justify-between items-start gap-2">
+                                <h3 
+                                  onClick={() => { setSelectedProduct(currentC); setCurrentView('pdp'); }}
+                                  className="font-serif font-bold text-xs sm:text-sm text-brand-ink uppercase line-clamp-1 hover:text-[#007799] transition-all cursor-pointer"
+                                >
+                                  {currentC.title}
+                                </h3>
+                                <div className="flex items-center space-x-1 shrink-0 text-amber-500 font-mono text-[11px] font-bold">
+                                  <span>★</span>
+                                  <span>{currentC.ratingAvg}</span>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-brand-ink-soft font-sans italic line-clamp-1">
+                                Handmolded using raw {currentC.material.join(' & ')}.
+                              </p>
+                            </div>
+
+                            {/* Action Row */}
+                            <div className="flex items-center justify-between pt-3 border-t border-brand-line/45">
+                              <div>
+                                <span className="text-[8px] uppercase font-mono text-zinc-400 block tracking-wider">Direct Price</span>
+                                <span className="text-xs sm:text-sm font-serif font-black text-brand-clay">
+                                  ₹{(currentC.price / 100).toLocaleString('en-IN')}
+                                </span>
+                              </div>
+
+                              <div className="flex space-x-1.5">
+                                <button
+                                  onClick={() => { setSelectedProduct(currentC); setCurrentView('pdp'); }}
+                                  className="text-[10px] bg-brand-paper-dark hover:bg-brand-line text-brand-ink px-3 py-2 rounded-lg font-bold transition-all border border-brand-line cursor-pointer"
+                                >
+                                  Spec
+                                </button>
+                                <button
+                                  onClick={() => handleAddToCart(currentC, 1)}
+                                  className="text-[10px] bg-brand-teal text-white hover:bg-brand-ink px-3.5 py-2 rounded-lg font-bold transition-all shadow-xs cursor-pointer"
+                                >
+                                  + Buy
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </motion.section>
+            </div>
 
             {/* 2. PILLAR GRID TILES SECTION */}
             <section className="space-y-4">
@@ -1072,7 +1207,417 @@ export default function Storefront({
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <h4 className="font-serif font-bold text-sm text-brand-ink uppercase">Ecological Safety First</h4>
-                  <p className="text-[11px] text-[#6B5E52] max-w-xs mx-auto leading-relaxed">
+                  <p className="text-[11px] text-brand-ink-soft max-w-xs mx-auto leading-relaxed">
+                    Chemical-free Slip washes, raw plant colors, and pure alloy casting metals assure completely food-safe and child-safe household ornaments.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* 10. NEW SECTION: SHAPING ACCENT ROOMS DYNAMIC SELECTOR */}
+            <section className="space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-line pb-4 gap-4">
+                <div>
+                  <h2 className="font-serif font-black text-xl text-brand-ink uppercase tracking-wider flex items-center">
+                    <Box className="w-5 h-5 text-brand-clay mr-2" /> Curated Room Stylings
+                  </h2>
+                  <p className="text-xs text-brand-ink-soft">Harmonize traditional, high-temperature earthenware with your contemporary living spaces.</p>
+                </div>
+                
+                {/* Accent Room selectors */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'dining', label: '🍽️ Dining Accent' },
+                    { id: 'living', label: '🛋️ Living Sanctuary' },
+                    { id: 'garden', label: '🪴 Balcony Oasis' },
+                    { id: 'study', label: '📚 Study Retreat' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveRoomAccent(tab.id)}
+                      className={`text-xs px-3 py-1.5 rounded-lg border font-bold cursor-pointer transition-all ${
+                        activeRoomAccent === tab.id 
+                          ? 'bg-brand-clay text-brand-paper border-brand-clay' 
+                          : 'bg-brand-paper text-brand-ink border-brand-line hover:bg-brand-paper-dark'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Room Accent content preview */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                <div className="lg:col-span-4 bg-brand-paper border border-brand-line rounded-2xl p-6 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <span className="text-[9px] font-mono uppercase bg-brand-line px-2 rounded font-bold text-brand-clay tracking-wider py-0.5">STYLE FORMULA</span>
+                    <h3 className="font-serif font-bold text-lg text-brand-ink uppercase">
+                      {activeRoomAccent === 'dining' && 'The Vitrified Dining Setting'}
+                      {activeRoomAccent === 'living' && 'The Raw Metal Hearth'}
+                      {activeRoomAccent === 'garden' && 'Breathes Of Clay Soil'}
+                      {activeRoomAccent === 'study' && 'The Quiet Intellectual'}
+                    </h3>
+                    <p className="text-xs text-brand-ink-soft leading-relaxed">
+                      {activeRoomAccent === 'dining' && 'Place deep, hand-painted ceramic serving bowls over wooden oak platforms. Accentuate with copper salt vessels to invite mineral warmth into your table.'}
+                      {activeRoomAccent === 'living' && 'Let a central Dhokra cast brass figurine rest under low-wattage warm spotlights. Pair with coarse cotton throws to invoke tribal metallurgical history.'}
+                      {activeRoomAccent === 'garden' && 'Hang unglazed clay wind ornaments near flowing air currents. Let the porous earthenware absorb relative humidity to emit earth tone fragrances.'}
+                      {activeRoomAccent === 'study' && 'Introduce minimal Terracotta stationery holders or a miniature solid bronze casting to capture focus and grounded tranquility.'}
+                    </p>
+                  </div>
+                  
+                  <div className="pt-6 border-t border-brand-line/50 mt-6 flex justify-between items-center">
+                    <span className="text-xs font-serif font-black text-brand-clay">ExclusiveLane Choice</span>
+                    <button 
+                      onClick={() => { setSelectedPillar(activeRoomAccent === 'dining' ? 'dining' : 'lighting'); setCurrentView('listing'); }} 
+                      className="text-xs text-brand-ink underline font-bold cursor-pointer hover:text-brand-clay"
+                    >
+                      Filter Catalog
+                    </button>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {db.products
+                    .filter(p => {
+                      if (activeRoomAccent === 'dining') return p.pillar === 'dining';
+                      if (activeRoomAccent === 'living') return p.pillar === 'decor' || p.pillar === 'lighting';
+                      if (activeRoomAccent === 'garden') return p.pillar === 'garden' || p.pillar === 'lighting';
+                      return p.pillar !== 'more';
+                    })
+                    .slice(0, 2)
+                    .map(p => (
+                      <div key={p.id} className="bg-brand-paper border border-brand-line rounded-2xl p-4 flex gap-4 items-center group">
+                        <div className="w-20 h-20 bg-brand-paper-dark rounded-xl overflow-hidden shrink-0">
+                          <img src={p.images[0]?.url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-all" referrerPolicy="no-referrer" />
+                        </div>
+                        <div className="space-y-1 overflow-hidden flex-1">
+                          <h4 className="text-xs font-serif font-bold text-brand-ink truncate group-hover:text-brand-clay transition-colors">{p.title}</h4>
+                          <span className="text-xs text-brand-clay font-mono font-bold">₹{(p.price/100).toLocaleString('en-IN')}</span>
+                          <div className="flex justify-between items-center pt-1.5">
+                            <span className="text-[10px] text-zinc-500 font-mono">★ {p.ratingAvg}</span>
+                            <button 
+                              onClick={() => { handleAddToCart(p, 1); }}
+                              className="text-[10px] bg-brand-teal text-brand-paper hover:bg-brand-ink px-2.5 py-1 rounded font-bold cursor-pointer transition-all"
+                            >
+                              + Add Item
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  {db.products
+                    .filter(p => {
+                      if (activeRoomAccent === 'dining') return p.pillar === 'dining';
+                      if (activeRoomAccent === 'living') return p.pillar === 'decor' || p.pillar === 'lighting';
+                      if (activeRoomAccent === 'garden') return p.pillar === 'garden' || p.pillar === 'lighting';
+                      return p.pillar !== 'more';
+                    })
+                    .slice(2, 4)
+                    .map(p => (
+                      <div key={p.id} className="bg-brand-paper border border-brand-line rounded-2xl p-4 flex gap-4 items-center group">
+                        <div className="w-20 h-20 bg-brand-paper-dark rounded-xl overflow-hidden shrink-0">
+                          <img src={p.images[0]?.url} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-all" referrerPolicy="no-referrer" />
+                        </div>
+                        <div className="space-y-1 overflow-hidden flex-1">
+                          <h4 className="text-xs font-serif font-bold text-brand-ink truncate group-hover:text-brand-clay transition-colors">{p.title}</h4>
+                          <span className="text-xs text-brand-clay font-mono font-bold">₹{(p.price/100).toLocaleString('en-IN')}</span>
+                          <div className="flex justify-between items-center pt-1.5">
+                            <span className="text-[10px] text-zinc-500 font-mono">★ {p.ratingAvg}</span>
+                            <button 
+                              onClick={() => { handleAddToCart(p, 1); }}
+                              className="text-[10px] bg-brand-teal text-brand-paper hover:bg-brand-ink px-2.5 py-1 rounded font-bold cursor-pointer transition-all"
+                            >
+                              + Add Item
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 11. NEW SECTION: THE PREDICTIVE ARTISAN GIFTING FINDER WIZARD */}
+            <section className="bg-brand-teal text-brand-paper rounded-3xl p-6 md:p-8 space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-brand-ochre/10 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-clay/10 rounded-full blur-3xl" />
+              
+              <div className="text-center max-w-xl mx-auto space-y-2 relative z-10">
+                <span className="text-[10px] font-mono tracking-widest text-[#D39527] uppercase font-bold bg-[#1B3B36] border border-brand-line/20 px-3 py-1 rounded-full">Automated Curating Assistant</span>
+                <h3 className="font-serif font-black text-2xl uppercase tracking-tight">The Heritage Gifting Wizard</h3>
+                <p className="text-xs text-brand-paper/80">Select your parameters. Our prediction engine instantly matches the coordinates of regional pottery & castings.</p>
+              </div>
+
+              {/* Wizard Selector Panels */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-black/15 p-4 rounded-2xl relative z-10">
+                <div>
+                  <label className="block text-[10px] font-mono text-brand-paper/70 uppercase tracking-widest mb-1.5">1. Who is the recipient?</label>
+                  <select 
+                    value={giftRecipient}
+                    onChange={(e) => { setGiftRecipient(e.target.value); setGiftFinderResults(null); }}
+                    className="w-full bg-[#13332F] text-brand-paper border border-white/20 p-2.5 rounded-xl text-xs focus:ring-1 focus:ring-brand-ochre outline-none font-bold"
+                  >
+                    <option value="mother">My Mother & Family</option>
+                    <option value="colleague">Corporate Colleagues</option>
+                    <option value="housewarming">Housewarming Ceremony</option>
+                    <option value="self">My Self-Space Accent</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono text-brand-paper/70 uppercase tracking-widest mb-1.5">2. Budget Limit Threshold</label>
+                  <select 
+                    value={giftBudget}
+                    onChange={(e) => { setGiftBudget(e.target.value); setGiftFinderResults(null); }}
+                    className="w-full bg-[#13332F] text-brand-paper border border-white/20 p-2.5 rounded-xl text-xs focus:ring-1 focus:ring-brand-ochre outline-none font-bold"
+                  >
+                    <option value="any">Any Value (Show Elite Masterpieces)</option>
+                    <option value="low">Under ₹1,500</option>
+                    <option value="mid">₹1,500 - ₹3,000</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono text-brand-paper/70 uppercase tracking-widest mb-1.5">3. Prime Material Vibe</label>
+                  <select 
+                    value={giftVibe}
+                    onChange={(e) => { setGiftVibe(e.target.value); setGiftFinderResults(null); }}
+                    className="w-full bg-[#13332F] text-brand-paper border border-white/20 p-2.5 rounded-xl text-xs focus:ring-1 focus:ring-brand-ochre outline-none font-bold"
+                  >
+                    <option value="any">Symmetric Mixture (All Crafts)</option>
+                    <option value="clay">Terra Ceramics & River Clay</option>
+                    <option value="brass">Heavy Bastar Cast Brass</option>
+                    <option value="fabric">Fine Looms & Mulberry Silk</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Trigger */}
+              <div className="text-center pt-2 relative z-10">
+                <button
+                  onClick={() => {
+                    setGiftFinderLoading(true);
+                    setTimeout(() => {
+                      // Filter algorithm based on selection
+                      const filtered = db.products.filter(p => {
+                        // budget
+                        if (giftBudget === 'low' && p.price > 150000) return false;
+                        if (giftBudget === 'mid' && (p.price < 150000 || p.price > 300000)) return false;
+                        
+                        // material vibe
+                        if (giftVibe === 'clay' && !p.material.includes('ceramic') && !p.material.includes('terracotta')) return false;
+                        if (giftVibe === 'brass' && !p.material.includes('brass') && !p.material.includes('iron') && !p.material.includes('copper')) return false;
+                        if (giftVibe === 'fabric' && !p.material.includes('fabric') && !p.material.includes('thread')) return false;
+                        
+                        return true;
+                      });
+                      setGiftFinderResults(filtered.slice(0, 3));
+                      setGiftFinderLoading(false);
+                    }, 500);
+                  }}
+                  className="bg-brand-ochre hover:bg-[#B37B1B] text-brand-teal text-xs px-8 py-3.5 rounded-xl font-bold font-sans tracking-wide transition-all shadow-md inline-flex items-center gap-2 cursor-pointer active:scale-95"
+                >
+                  {giftFinderLoading ? 'Calculating Cluster Matches...' : 'Predict Ideal Collector Gifts'} <Sparkles className="w-4 h-4 text-brand-paper animate-bounce" />
+                </button>
+              </div>
+
+              {/* Wizard Results Output inside nice container */}
+              {giftFinderResults && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-brand-paper text-brand-ink rounded-2xl p-5 space-y-4 shadow-xl z-10 relative border border-brand-line"
+                >
+                  <div className="flex justify-between items-center text-[10px] font-mono border-b border-brand-line pb-2.5">
+                    <span className="text-brand-clay font-bold tracking-wider">MATCHED ALIGNMENT FOUND (3 CO-ORDS)</span>
+                    <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-md">88%+ Direct Trade Yield Verified</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {giftFinderResults.length === 0 ? (
+                      <div className="text-center py-6 md:col-span-3 text-xs text-brand-ink-soft italic">
+                        No perfect match matches the restrictive budget/vibe. Try selecting "Any Value" or "Symmetric Mixture"!
+                      </div>
+                    ) : (
+                      giftFinderResults.map(p => (
+                        <div key={p.id} className="border border-brand-line rounded-xl p-3 bg-brand-paper-dark hover:shadow-xs flex flex-col justify-between">
+                          <div className="space-y-2">
+                            <div className="h-32 bg-brand-paper rounded-lg overflow-hidden">
+                              <img src={p.images[0]?.url} alt={p.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </div>
+                            <h4 className="text-xs font-serif font-bold text-brand-ink pr-2 line-clamp-2 leading-tight">{p.title}</h4>
+                          </div>
+
+                          <div className="pt-3 border-t border-brand-line/50 mt-3 flex justify-between items-center text-xs">
+                            <span className="font-serif text-brand-clay font-black">₹{(p.price/100).toLocaleString('en-IN')}</span>
+                            <button
+                              onClick={() => handleAddToCart(p, 1)}
+                              className="bg-brand-teal text-white hover:bg-brand-ink text-[10px] px-2.5 py-1.5 rounded-md font-bold transition-all"
+                            >
+                              Add to Box
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </section>
+
+            {/* 12. NEW SECTION: REGIONAL WORKSHOP KILN TELEMETRY SIMULATOR */}
+            <section className="bg-brand-paper border border-brand-line rounded-3xl p-6 md:p-8 space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-line pb-4 gap-4">
+                <div>
+                  <h3 className="font-serif font-black text-xl text-brand-ink uppercase tracking-wider flex items-center">
+                    <SlidersHorizontal className="w-5 h-5 text-brand-sage mr-2 animate-pulse" /> Direct Cluster Telemetry
+                  </h3>
+                  <p className="text-xs text-brand-ink-soft font-sans">Real-time status tracking of kiln temperatures, active melts and wood-fired furnaces.</p>
+                </div>
+                
+                <div className="hidden sm:block">
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest bg-brand-paper-dark px-3 py-1 rounded-full border border-brand-line">
+                    Updated: Live Now (UTC-Coords)
+                  </span>
+                </div>
+              </div>
+
+              {/* Telemetry metrics row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { region: 'Bastar Smelting Furnace', label: 'Dhokra Alloys melt', status: 'Optimal Cast', value: '1,080 °C', metric: 'Wax Dissolved Completely', color: 'text-amber-600' },
+                  { region: 'Khurda Clay Kiln #4', label: 'Earthenware firing cycle', status: 'Preheating Step', value: '820 °C', metric: 'Water Slipped Completely', color: 'text-brand-clay' },
+                  { region: 'Chanderi Spindle Rows', label: 'Mulberry Mulberry Looming', status: 'Loom Active', value: '124 RPM', metric: 'Zari Blend Balanced', color: 'text-[#D39527]' },
+                  { region: 'Chorhat Slip Studio', label: 'Clay slip density ratio', status: 'Curing Now', value: '98.5 %', metric: 'Non-Toxic Oxide Slurry', color: 'text-emerald-700' }
+                ].map((tele, idx) => (
+                  <div key={idx} className="bg-brand-paper-dark/35 border border-brand-line rounded-2xl p-4 space-y-3">
+                    <div className="flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-brand-ink-soft font-bold uppercase truncate max-w-xs">{tele.region}</span>
+                      <span className="bg-white/90 border border-brand-line px-1.5 py-0.5 rounded text-[8px] font-bold text-emerald-800 tracking-normal flex items-center shrink-0">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse mr-1" /> {tele.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline space-x-2">
+                      <span className={`text-2xl font-serif font-black tracking-tight ${tele.color}`}>{tele.value}</span>
+                      <span className="text-[10px] font-mono text-zinc-500">nominal</span>
+                    </div>
+
+                    <p className="text-[10px] text-zinc-600 leading-relaxed font-sans italic border-t border-brand-line/50 pt-2">{tele.metric}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 13. NEW SECTION: ART FORM SPOTLIGHT HERO COLLAGE */}
+            <section className="bg-brand-paper border border-brand-line rounded-3xl p-6 md:p-8 space-y-6">
+              <div className="text-center max-w-2xl mx-auto space-y-2">
+                <span className="text-[10px] font-mono text-brand-clay font-bold tracking-widest uppercase">KNOWLEDGE REGISTER</span>
+                <h3 className="font-serif font-black text-2xl text-brand-ink uppercase tracking-wider">Unmasking Traditional Art Forms</h3>
+                <p className="text-xs text-brand-ink-soft md:px-12">Learn the stylistic DNA that distinguishes generational Indian crafts from ordinary mass-produced plastic ornaments.</p>
+              </div>
+
+              {/* Art Form Tabs with detailed descriptive collages */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { id: 'dhokra', label: 'Bastar Dhokra' },
+                  { id: 'pottery', label: 'Studio Pottery' },
+                  { id: 'warli', label: 'Warli Paintings' },
+                  { id: 'loom', label: 'Chanderi Weaves' }
+                ].map(form => (
+                  <button
+                    key={form.id}
+                    onClick={() => setActiveArtForm(form.id)}
+                    className={`text-xs p-3 rounded-xl border font-bold text-center cursor-pointer transition-all ${
+                      activeArtForm === form.id 
+                        ? 'bg-brand-ink text-brand-paper border-brand-ink shadow-md' 
+                        : 'bg-brand-paper text-brand-ink border-brand-line hover:bg-brand-paper-dark'
+                    }`}
+                  >
+                    {form.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="bg-brand-paper-dark rounded-2xl p-5 border border-brand-line md:p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div className="space-y-4">
+                  <span className="text-[10px] font-mono uppercase bg-brand-clay text-brand-paper px-2.5 py-0.5 rounded-md font-bold inline-block">
+                    {activeArtForm === 'dhokra' && '4000 Year Lost-Wax Bronze'}
+                    {activeArtForm === 'pottery' && 'Vitrified Glazed Stoneware'}
+                    {activeArtForm === 'warli' && 'Tribal Geometric Ideograms'}
+                    {activeArtForm === 'loom' && 'Spun Silk & Fine Gilded Threads'}
+                  </span>
+                  
+                  <h4 className="font-serif font-black text-lg text-brand-ink uppercase">
+                    {activeArtForm === 'dhokra' && 'The Liquid Bronze Alchemy'}
+                    {activeArtForm === 'pottery' && 'The Ceramics Thermodynamic Curve'}
+                    {activeArtForm === 'warli' && 'Symbols of General Harmony'}
+                    {activeArtForm === 'loom' && 'The Symmetrics of Mulberry Looming'}
+                  </h4>
+
+                  <p className="text-xs text-brand-ink-soft leading-relaxed">
+                    {activeArtForm === 'dhokra' && 'A core of local mud is sculpted, dried, wrapped in fine lines of honeycomb beeswax, and covered in high-density casting clay. When iron oxide alloy is poured, the wax vanishes leaving a singular, solid hollow figurine representing sacred deities and forest spirits.'}
+                    {activeArtForm === 'pottery' && 'Glazed at 1200°C inside woodfired ovens. Slip decorations containing non-toxic cobalt and iron oxides fuse with clay crystalline matrices, providing scratchproof, fully food-safe kitchen bowls.'}
+                    {activeArtForm === 'warli' && 'Representing triangles, circles, and lines of the sun, moon, and nature-cycles. Painted on red ochre mud walls using pure rice paste and water, forming festive circle movements.'}
+                    {activeArtForm === 'loom' && 'Handworked by traditional weavers in central Madhya Pradesh. Mixing cotton fibers with pure gold dipped wire plating yields airy sheer drapes resembling local forest mist.'}
+                  </p>
+                </div>
+
+                <div className="h-48 md:h-64 bg-brand-paper rounded-xl overflow-hidden border border-brand-line">
+                  <img 
+                    src={
+                      activeArtForm === 'dhokra' 
+                        ? 'https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=650'
+                        : activeArtForm === 'pottery'
+                        ? 'https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&q=80&w=650'
+                        : activeArtForm === 'warli'
+                        ? 'https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?auto=format&fit=crop&q=80&w=650'
+                        : 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=650'
+                    } 
+                    alt="Art form detailed" 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* 14. NEW SECTION: BRAND TRUST METADATA CARD */}
+            <section className="bg-brand-paper border border-brand-line rounded-3xl p-6 md:p-8 space-y-6">
+              <div className="text-center max-w-xl mx-auto space-y-1">
+                <span className="text-[9px] font-mono uppercase bg-brand-line px-2 rounded font-bold text-brand-clay tracking-wider py-0.5">Physical trust index</span>
+                <h3 className="font-serif font-bold text-lg text-brand-ink uppercase">Handcrafted Standings & Integrity</h3>
+              </div>
+              
+              {/* Bento Trust Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center select-none">
+                <div className="bg-brand-paper-dark/35 border border-brand-line rounded-2xl p-5 space-y-2 hover:shadow-md transition-shadow">
+                  <div className="inline flex items-center justify-center p-3 bg-brand-clay text-brand-paper rounded-full mx-auto w-12 h-12">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-serif font-bold text-sm text-brand-ink uppercase">Direct Trade Yield</h4>
+                  <p className="text-[11px] text-brand-ink-soft max-w-xs mx-auto leading-relaxed">
+                    Zero speculative middlemen. Over 78% of the final sales value is directly settled into the artisan cluster bank accounts within 48 hours.
+                  </p>
+                </div>
+
+                <div className="bg-brand-paper-dark/35 border border-brand-line rounded-2xl p-5 space-y-2 hover:shadow-md transition-shadow">
+                  <div className="inline flex items-center justify-center p-3 bg-brand-ochre text-brand-paper rounded-full mx-auto w-12 h-12">
+                    <Award className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-serif font-bold text-sm text-brand-ink uppercase">Generational Authenticity</h4>
+                  <p className="text-[11px] text-brand-ink-soft max-w-xs mx-auto leading-relaxed">
+                    Every element is handcrafted using oral family instructions dating several centuries. Rigorous cluster inspection prevents machine copies.
+                  </p>
+                </div>
+
+                <div className="bg-brand-paper-dark/35 border border-brand-line rounded-2xl p-5 space-y-2 hover:shadow-md transition-shadow">
+                  <div className="inline flex items-center justify-center p-3 bg-green-700 text-brand-paper rounded-full mx-auto w-12 h-12">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-serif font-bold text-sm text-brand-ink uppercase">Ecological Safety First</h4>
+                  <p className="text-[11px] text-brand-ink-soft max-w-xs mx-auto leading-relaxed">
                     Chemical-free Slip washes, raw plant colors, and pure alloy casting metals assure completely food-safe and child-safe household ornaments.
                   </p>
                 </div>
@@ -1713,6 +2258,265 @@ export default function Storefront({
           </div>
         )}
       </main>
+
+      {/* -------------------------------------------------------------- */}
+      {/* 15. DYNAMIC EDITORIAL TESTIMONIALS & TRUSTED REVIEWS SECTION    */}
+      {/* -------------------------------------------------------------- */}
+      <section className="bg-[#F0F6FA] border-t border-b border-brand-line py-16 px-4 sm:px-6 lg:px-8 select-none">
+        <div className="max-w-7xl mx-auto space-y-10">
+          <div className="text-center space-y-2">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#007799] font-black bg-white/95 px-3 py-1 rounded-full border border-brand-line shadow-xs">
+              Collector & Architect Testimonials
+            </span>
+            <h2 className="font-serif font-black text-2xl sm:text-3xl text-brand-ink uppercase tracking-wide">
+              The Living Space Chronicle
+            </h2>
+            <p className="text-xs text-[#4F646F] max-w-lg mx-auto font-sans">
+              Discover how generational craft values merge with contemporary architectural projects and intimate design routines.
+            </p>
+          </div>
+
+          {/* Testimonial Large Slider Box */}
+          {(() => {
+            const testimonialsList = [
+              {
+                quote: '"We placed the antique lost-wax heavy bronze casting as a central focal centerpiece at our main lobby. The authenticity is completely untouched, embodying centuries of regional Bastar metallurgical pride. Client reactions are magnificent."',
+                clientName: "Meenakshie Sundaram",
+                designation: "Principal Interior Architect, SpaceForm Guild",
+                clientImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200",
+                craftImage: "https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=700",
+                location: "Bengaluru, India"
+              },
+              {
+                quote: '"Our private culinary space relies entirely on these lead-free high-temperature stoneware dinner pots. They handle heat distribution flawlessly and look breathtaking in high-contrast blue light environments. Authentic direct trade makes every plate special."',
+                clientName: "Chef Kabir Dev",
+                designation: "Michelin Consultant & Culinary Lead, Sawa",
+                clientImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200",
+                craftImage: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=700",
+                location: "Mumbai, India"
+              },
+              {
+                quote: '"Stunning, sculptural, and beautifully porous. The studio clay slip density is unmatched. It hums with the warmth of the kiln, infusing an organic scent. Direct Trade support settled over 78% value of this order directly into the artisan cluster."',
+                clientName: "Aditi Roy Chowdhury",
+                designation: "Visual Decor Lead, House of Hearth",
+                clientImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200",
+                craftImage: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=700",
+                location: "Kolkata, India"
+              }
+            ];
+
+            const activeTestimonial = testimonialsList[testimonialIndex];
+
+            return (
+              <div className="bg-white border border-brand-line rounded-3xl overflow-hidden shadow-xl grid grid-cols-1 lg:grid-cols-12 items-stretch animate-in fade-in duration-300">
+                {/* Left Side: Representative Craft Product Image */}
+                <div className="lg:col-span-5 h-64 lg:h-auto bg-brand-paper-dark relative overflow-hidden">
+                  <img 
+                    src={activeTestimonial.craftImage} 
+                    alt="Artisan Craft Representative"
+                    className="w-full h-full object-cover transition-all duration-75"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+                  <span className="absolute bottom-4 left-4 bg-[#007799]/90 text-white text-[9px] uppercase font-mono px-3 py-1 rounded font-bold tracking-widest">
+                    Verification Certified
+                  </span>
+                </div>
+
+                {/* Right Side: Quote, Profile, Designation and Slider Two-Way Arrow */}
+                <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-between space-y-8 relative">
+                  <div className="space-y-6">
+                    {/* Big Quote marks styling */}
+                    <span className="font-serif text-6xl text-[#007799]/15 absolute top-4 left-4 pointer-events-none">“</span>
+                    
+                    <p className="font-serif text-sm sm:text-base lg:text-lg italic text-brand-ink leading-relaxed relative z-10 pt-4">
+                      {activeTestimonial.quote}
+                    </p>
+
+                    <div className="flex items-center space-x-4 relative z-10">
+                      {/* Client portrait image */}
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#007799]/40 bg-zinc-100 shrink-0">
+                        <img 
+                          src={activeTestimonial.clientImage} 
+                          alt={activeTestimonial.clientName}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <h4 className="font-serif font-black text-xs sm:text-sm text-brand-ink uppercase tracking-wide">
+                          {activeTestimonial.clientName}
+                        </h4>
+                        <p className="text-[10px] text-[#007799] font-mono font-bold leading-none">
+                          {activeTestimonial.designation}
+                        </p>
+                        <span className="text-[9px] text-[#4F646F] block tracking-normal uppercase">
+                          📍 {activeTestimonial.location}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Two-Way Arrow Slider Buttons at bottom right */}
+                  <div className="flex justify-between items-center pt-6 border-t border-brand-line">
+                    <div className="flex items-center space-x-1 font-mono text-xs text-brand-ink-soft">
+                      <span className="font-bold text-[#007799]">{testimonialIndex + 1}</span>
+                      <span>/</span>
+                      <span>{testimonialsList.length}</span>
+                    </div>
+
+                    {/* Two-way arrows controller */}
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setTestimonialIndex(prev => (prev === 0 ? testimonialsList.length - 1 : prev - 1));
+                        }}
+                        className="w-10 h-10 bg-[#F0F6FA] hover:bg-brand-line border border-brand-line text-brand-ink rounded-xl flex items-center justify-center text-sm font-serif font-black hover:scale-105 active:scale-90 transition-all cursor-pointer shadow-xs"
+                        aria-label="Previous Testimonial"
+                      >
+                        ←
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTestimonialIndex(prev => (prev === testimonialsList.length - 1 ? 0 : prev + 1));
+                        }}
+                        className="w-10 h-10 bg-[#F0F6FA] hover:bg-brand-line border border-brand-line text-brand-ink rounded-xl flex items-center justify-center text-sm font-serif font-black hover:scale-105 active:scale-90 transition-all cursor-pointer shadow-xs"
+                        aria-label="Next Testimonial"
+                      >
+                        →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </section>
+
+      {/* -------------------------------------------------------------- */}
+      {/* 16. ELEGANT EXCLUSIVE BRAND FOOTER                              */}
+      {/* -------------------------------------------------------------- */}
+      <footer className="bg-white border-t border-brand-line select-none mt-16 pb-12">
+        
+        {/* Newsletter Signup bar */}
+        <div className="bg-[#F0F6FA]/60 border-b border-brand-line py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="space-y-1">
+              <h3 className="font-serif font-bold text-sm text-brand-ink uppercase tracking-wide">Get Cluster Firing Schedules</h3>
+              <p className="text-xs text-[#4F646F]">Original kiln list releases, artisan journals, and exclusive cluster offerings.</p>
+            </div>
+
+            <div className="w-full md:w-auto">
+              {newsletterSubscribed ? (
+                <div className="flex items-center space-x-2 bg-emerald-50 text-emerald-800 text-xs py-2.5 px-6 rounded-xl border border-emerald-200 font-bold">
+                  <span>✓ Subscription Confirmed! Digital Catalog Access Enabled.</span>
+                </div>
+              ) : (
+                <form 
+                  onSubmit={(e) => { e.preventDefault(); if (newsletterEmail) setNewsletterSubscribed(true); }}
+                  className="flex gap-2 max-w-md w-full"
+                >
+                  <input 
+                    type="email" 
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    required
+                    placeholder="Enter design email address..." 
+                    className="bg-white border border-brand-line text-brand-ink text-xs px-4 py-2.5 rounded-xl w-full md:w-64 focus:outline-none focus:ring-1 focus:ring-[#007799]"
+                  />
+                  <button 
+                    type="submit"
+                    className="bg-brand-ink text-white hover:bg-[#007799] text-xs px-5 py-2.5 rounded-xl font-sans font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                  >
+                    Subscribe Alerts
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer directories grid */}
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          {/* Brand block details */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-1 shrink-0">
+              <span className="font-serif italic font-light text-[#007799] text-lg">exclusivelane</span>
+              <span className="text-[9px] uppercase font-mono bg-[#007799] text-white px-2 py-0.5 rounded-md font-bold leading-none tracking-normal">Direct Trade</span>
+            </div>
+            
+            <p className="text-xs text-[#4F646F] leading-relaxed font-sans">
+              Indian regional commerce hub connecting physical studio ceramic potters and Bastar bell-metal artists directly with contemporary curators. Verified chemical-free slip coatings.
+            </p>
+
+            <p className="text-[10px] text-[#6B8E9B] font-mono">
+              © 2026 ExclusiveLane Cluster Ltd. • Mumbai & Bengaluru • All Rights Protected under Direct Craft Trade Act.
+            </p>
+          </div>
+
+          {/* Nav Links 1: Catalog */}
+          <div className="space-y-3">
+            <h4 className="font-serif font-black text-xs uppercase tracking-wider text-brand-ink">Explore Catalog directories</h4>
+            <ul className="space-y-2 text-xs text-[#4F646F]">
+              <li>
+                <button onClick={() => { setSelectedPillar('dining'); setCurrentView('listing'); }} className="hover:text-brand-clay transition-colors cursor-pointer text-left">
+                  🏺 Studio Pottery Dinnerware
+                </button>
+              </li>
+              <li>
+                <button onClick={() => { setSelectedPillar('lighting'); setCurrentView('listing'); }} className="hover:text-brand-clay transition-colors cursor-pointer text-left">
+                  💡 Generational Earthen Lamps
+                </button>
+              </li>
+              <li>
+                <button onClick={() => { setSelectedPillar(null); setCurrentView('listing'); }} className="hover:text-brand-clay transition-colors cursor-pointer text-left">
+                  ⚜️ Lost-wax Bastar Bronze figurines
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setCurrentView('lookbook')} className="hover:text-brand-clay transition-colors cursor-pointer text-left">
+                  🥽 3D Placement Lookbook Interactive
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Nav Links 2: Trust */}
+          <div className="space-y-3">
+            <h4 className="font-serif font-black text-xs uppercase tracking-wider text-brand-ink">Craft integrity standards</h4>
+            <ul className="space-y-2 text-xs text-[#4F646F]">
+              <li><a href="#" onClick={(e) => { e.preventDefault(); alert("Verification policy: Zero middlemen. 78%+ final product payout settled strictly into weaver & blacksmith cluster accounts within 48 hours."); }} className="hover:text-brand-clay transition-colors cursor-pointer">Artisan Cluster Bank Audits</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); alert("Safety checklist: All clay items use oxide and mineral slip pigments. Completely lead-free, non-toxic and child safe."); }} className="hover:text-brand-clay transition-colors cursor-pointer">Glaze Heavy-Metal Safety Certificates</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); alert("Heritage registration: Fully certified oral family blueprints going back over three centuries."); }} className="hover:text-brand-clay transition-colors">Veda Craft Registries</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); alert("We support welfare camps helping kids of craftsmen across Bastar and Khurda districts."); }} className="hover:text-brand-clay transition-colors">Artisan Children Medical Aid</a></li>
+            </ul>
+          </div>
+
+          {/* Dynamic Geographic pride index */}
+          <div className="space-y-3 bg-[#F0F6FA] p-5 rounded-2xl border border-brand-line">
+            <h4 className="font-serif font-black text-xs uppercase tracking-wider text-brand-ink flex items-center">
+              🇮🇳 Geographical Pride Registry
+            </h4>
+            <p className="text-[10px] text-[#4F646F] leading-relaxed">
+              Serving premium handcrafted spaces. Unified transit includes express shipping across Mumbai, NCR, Bengaluru, Hyderabad, Chennai, Kolkata, and regional design clusters.
+            </p>
+            <div className="flex items-center space-x-2 pt-1 text-[#007799] text-xs font-mono font-bold select-none">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+              <span>Free Domestic Transit Active</span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Small cluster tag mark */}
+        <div className="border-t border-brand-line py-4 bg-brand-paper-dark text-center text-[10px] font-mono text-[#6B8E9B]">
+          Handworked Trade Certification Code: EXL-IND-2026-CLUSTERSA1
+        </div>
+
+      </footer>
 
       {/* -------------------------------------------------------------- */}
       {/* FLOATING AI CHAT CONCIERGE LAUNCHER                            */}
