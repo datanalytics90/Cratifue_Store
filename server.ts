@@ -62,6 +62,7 @@ interface DbSchema {
     brandName: string;
     primaryColor: string;
   };
+  autoStockRefill: boolean;
 }
 
 const DEFAULT_DB: DbSchema = {
@@ -334,7 +335,7 @@ const DEFAULT_DB: DbSchema = {
         { sku: 'CFT-LGT-POT-04-B', label: 'Terracotta Bell', price: 129000, mrp: 179000, inventory: 18 }
       ],
       images: [
-        { url: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?auto=format&fit=crop&q=80&w=600', alt: 'Clay hanging bell lamp', type: 'image', isPrimary: true }
+        { url: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=600', alt: 'Clay hanging bell lamp', type: 'image', isPrimary: true }
       ],
       dimensionsCm: { l: 22, w: 22, h: 22 },
       weightGrams: 1400,
@@ -646,7 +647,8 @@ const DEFAULT_DB: DbSchema = {
     customImage: null,
     brandName: 'Craftifue',
     primaryColor: '#C4683B'
-  }
+  },
+  autoStockRefill: true
 };
 
 // Seed DB on startup if it doesn't exist
@@ -663,7 +665,11 @@ const ensureDbLoaded = (): DbSchema => {
       fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), 'utf8');
       return DEFAULT_DB;
     }
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (parsed.autoStockRefill === undefined) {
+      parsed.autoStockRefill = true;
+    }
+    return parsed;
   } catch (error) {
     console.error('Error reading DB_FILE. Repairing and restoring default seed.', error);
     fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), 'utf8');
@@ -765,6 +771,44 @@ app.post('/api/logo/config', (req, res) => {
   res.json(db.logoConfig);
 });
 
+// Auto Stock Refill Toggle Endpoint
+app.post('/api/config/refill', (req, res) => {
+  db = ensureDbLoaded();
+  const { enabled } = req.body;
+  db.autoStockRefill = !!enabled;
+  saveDb(db);
+  res.json({ autoStockRefill: db.autoStockRefill });
+});
+
+// Manual Batch Refill Out-of-Stock/Low-Stock Endpoint
+app.post('/api/inventory/refill', (req, res) => {
+  db = ensureDbLoaded();
+  let count = 0;
+  db.products.forEach((product: any) => {
+    if (product.inventory <= 3) {
+      const oldStock = product.inventory;
+      const refillTarget = 15;
+      const refilledQty = refillTarget - oldStock;
+      product.inventory = refillTarget;
+      
+      db.notifications.push({
+        id: `not_refill_manual_${Date.now()}_${product.id}_${Math.floor(Math.random() * 1000)}`,
+        uid: 'user_admin',
+        kind: 'system',
+        title: '🔄 Stock Refilled Manually',
+        body: `Admin requested batch refill. "${product.title}" stocked by +${refilledQty} units (Total: ${refillTarget}).`,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
+      count++;
+    }
+  });
+  if (count > 0) {
+    saveDb(db);
+  }
+  res.json({ success: true, refilledCount: count });
+});
+
 // Checkout order creator
 app.post('/api/checkout', (req, res) => {
   db = ensureDbLoaded();
@@ -785,8 +829,41 @@ app.post('/api/checkout', (req, res) => {
     if (productIndex !== -1) {
       const product = db.products[productIndex];
       // Reduce main product stock
+      const oldStock = product.inventory;
       product.inventory = Math.max(0, product.inventory - cartItem.qty);
       product.salesCount += cartItem.qty;
+
+      // Low stock warning and Auto Stock Refill
+      const lowStockThreshold = 4; // Low warning if <= 4 units remaining
+      if (product.inventory <= lowStockThreshold) {
+        // 1. Create a persistent low stock notification for the admin
+        db.notifications.push({
+          id: `not_low_${Date.now()}_${product.id}_${Math.floor(Math.random() * 1000)}`,
+          uid: 'user_admin',
+          kind: 'system',
+          title: '⚠️ Low Stock Warning',
+          body: `Product "${product.title}" has fallen to ${product.inventory} units (SKU: ${product.sku}).`,
+          read: false,
+          createdAt: new Date().toISOString()
+        });
+
+        // 2. Perform Auto Stock Refill if enabled
+        if (db.autoStockRefill !== false) {
+          const refillTarget = 15;
+          const refilledQty = refillTarget - product.inventory;
+          product.inventory = refillTarget;
+
+          db.notifications.push({
+            id: `not_refill_${Date.now()}_${product.id}_${Math.floor(Math.random() * 1000)}`,
+            uid: 'user_admin',
+            kind: 'system',
+            title: '🔄 Auto Stock Refill Success',
+            body: `Stock for "${product.title}" auto-replenished by +${refilledQty} units to target ${refillTarget}.`,
+            read: false,
+            createdAt: new Date().toISOString()
+          });
+        }
+      }
     }
     return {
       ...cartItem,

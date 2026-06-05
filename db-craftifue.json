@@ -1,0 +1,1406 @@
+{
+  "users": [
+    {
+      "uid": "user_admin",
+      "role": "admin",
+      "displayName": "RD Admin",
+      "email": "rd14190@gmail.com",
+      "addresses": [
+        {
+          "fullName": "Rajesh Sharma",
+          "phone": "+91 98765 43210",
+          "line1": "102, Craft Haven Apt",
+          "line2": "Bandra West",
+          "city": "Mumbai",
+          "state": "Maharashtra",
+          "pincode": "400050",
+          "country": "IN",
+          "isDefault": true
+        }
+      ],
+      "wishlist": [],
+      "defaultLocale": "en-IN",
+      "createdAt": "2026-06-05T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "uid": "user_buyer_1",
+      "role": "buyer",
+      "displayName": "Aanya Iyer",
+      "email": "aanya@example.com",
+      "addresses": [
+        {
+          "fullName": "Aanya Iyer",
+          "phone": "+91 99911 22334",
+          "line1": "Block C, Golden Woods",
+          "line2": "Whitefield",
+          "city": "Bengaluru",
+          "state": "Karnataka",
+          "pincode": "560066",
+          "country": "IN",
+          "isDefault": true
+        }
+      ],
+      "wishlist": [],
+      "defaultLocale": "en-IN",
+      "createdAt": "2026-06-05T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    }
+  ],
+  "artisans": [
+    {
+      "id": "artisan_suman",
+      "ownerUid": "user_seller_suman",
+      "name": "Suman Devangan",
+      "slug": "suman-devangan",
+      "region": "Bastar, Chhattisgarh",
+      "craftSpecialty": [
+        "dhokra",
+        "hand-carved"
+      ],
+      "materials": [
+        "brass",
+        "iron"
+      ],
+      "bio": "Suman has been casting bronze using the traditional lost-wax Dhokra technique for over 32 years. His family preserves an oral metallurgical legacy passed down across five generations.",
+      "story": "Suman comes from a remote hamlet in Bastar. Suman molds every beeswax thread by hand before wrapping it around dynamic clay core figures, giving birth to fluid mythological sculptures and brass diyas of immaculate craft quality.",
+      "portfolio": [
+        {
+          "url": "https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=600",
+          "alt": "Casting workshop",
+          "type": "image"
+        }
+      ],
+      "ratingAvg": 4.9,
+      "productCount": 8,
+      "onboardingStatus": "onboarded",
+      "commissionProfileId": "default",
+      "kycVerified": true,
+      "payoutMasked": "•••• 8821",
+      "createdAt": "2026-06-05T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "artisan_gopal",
+      "ownerUid": "user_seller_gopal",
+      "name": "Gopal Sahu",
+      "slug": "gopal-sahu",
+      "region": "Khurda, Odisha",
+      "craftSpecialty": [
+        "studio-pottery",
+        "warli"
+      ],
+      "materials": [
+        "terracotta",
+        "ceramic"
+      ],
+      "bio": "Gopal is an award-winning clay sculptor who specializes in high-fired terracotta pottery, mixing clay types to create durable daily-use dining ware.",
+      "story": "Born to family of clay artisans near the Chilika lake, Gopal studied ancient kiln design and blends tribal Warli themes onto terracotta plate surfaces in his Odisha workshop.",
+      "portfolio": [
+        {
+          "url": "https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&q=80&w=600",
+          "alt": "Pottery wheel",
+          "type": "image"
+        }
+      ],
+      "ratingAvg": 4.8,
+      "productCount": 7,
+      "onboardingStatus": "onboarded",
+      "commissionProfileId": "default",
+      "kycVerified": true,
+      "payoutMasked": "•••• 1245",
+      "createdAt": "2026-06-05T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "artisan_lalita",
+      "ownerUid": "user_seller_lalita",
+      "name": "Lalita Meo",
+      "slug": "lalita-meo",
+      "region": "Chanderi, Madhya Pradesh",
+      "craftSpecialty": [
+        "block-print",
+        "meenakari"
+      ],
+      "materials": [
+        "silver",
+        "fabric",
+        "thread"
+      ],
+      "bio": "Lalita weaves block-printed fabrics and crafts delicate hand-strung silver meenakari jewelry lines reflecting royal patterns.",
+      "story": "Lalita directs a self-help cooperative of 15 women artisans in Chanderi, enabling girls to master block carving & traditional enameling.",
+      "portfolio": [
+        {
+          "url": "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=600",
+          "alt": "Block print process",
+          "type": "image"
+        }
+      ],
+      "ratingAvg": 4.7,
+      "productCount": 6,
+      "onboardingStatus": "onboarded",
+      "commissionProfileId": "default",
+      "kycVerified": true,
+      "payoutMasked": "•••• 3922",
+      "createdAt": "2026-06-05T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat_dining",
+      "name": "Dining",
+      "slug": "dining",
+      "parentId": null,
+      "path": [
+        "dining"
+      ],
+      "level": 0,
+      "pillar": "dining",
+      "sortOrder": 1,
+      "isActive": true,
+      "seo": {
+        "title": "Artisanal Dining and Tableware | Craftifue",
+        "description": "Explore hand-thrown ceramic plates, wooden server trays and lost-wax brass bowls."
+      }
+    },
+    {
+      "id": "cat_lighting",
+      "name": "Lighting",
+      "slug": "lighting",
+      "parentId": null,
+      "path": [
+        "lighting"
+      ],
+      "level": 0,
+      "pillar": "lighting",
+      "sortOrder": 2,
+      "isActive": true,
+      "seo": {
+        "title": "Decorative Handcrafted Lamps and Lighting | Craftifue",
+        "description": "Pendant lamps, desk lanterns and classic clay diyas."
+      }
+    },
+    {
+      "id": "cat_decor",
+      "name": "Decor",
+      "slug": "decor",
+      "parentId": null,
+      "path": [
+        "decor"
+      ],
+      "level": 0,
+      "pillar": "decor",
+      "sortOrder": 3,
+      "isActive": true,
+      "seo": {
+        "title": "Elegant Indian Home Decor & Frames | Craftifue",
+        "description": "Warli and Madhubani wall panels, brass figurines and hand-carved mirrors."
+      }
+    },
+    {
+      "id": "cat_garden",
+      "name": "Garden",
+      "slug": "garden",
+      "parentId": null,
+      "path": [
+        "garden"
+      ],
+      "level": 0,
+      "pillar": "garden",
+      "sortOrder": 4,
+      "isActive": true,
+      "seo": {
+        "title": "Earthy Terracotta Planters & Hanging Pots | Craftifue",
+        "description": "Terracotta wall hanging pots, ceramic bowls and succulent planters."
+      }
+    },
+    {
+      "id": "cat_jewellery",
+      "name": "Handcrafted Jewellery",
+      "slug": "handcrafted-jewellery",
+      "parentId": null,
+      "path": [
+        "handcrafted-jewellery"
+      ],
+      "level": 0,
+      "pillar": "jewellery",
+      "sortOrder": 5,
+      "isActive": true,
+      "seo": {
+        "title": "Ethnic Handcrafted Sterling Silver & Brass Jewelry | Craftifue",
+        "description": "Beautiful earrings, necklaces, bangles and rings handcrafted by local master silver smiths."
+      }
+    },
+    {
+      "id": "cat_dining_plates",
+      "name": "Ceramic Plates",
+      "slug": "ceramic-plates",
+      "parentId": "cat_dining",
+      "path": [
+        "dining",
+        "ceramic-plates"
+      ],
+      "level": 1,
+      "pillar": "dining",
+      "sortOrder": 10,
+      "isActive": true,
+      "seo": {
+        "title": "High-fired Ceramic Dinner Plates",
+        "description": "Studio pottery."
+      }
+    },
+    {
+      "id": "cat_dining_bowls",
+      "name": "Ceramic Bowls",
+      "slug": "ceramic-bowls",
+      "parentId": "cat_dining",
+      "path": [
+        "dining",
+        "ceramic-bowls"
+      ],
+      "level": 1,
+      "pillar": "dining",
+      "sortOrder": 11,
+      "isActive": true,
+      "seo": {
+        "title": "Hand-etched Ceramic Bowls",
+        "description": "Studio pottery serving bowls."
+      }
+    },
+    {
+      "id": "cat_dining_trays",
+      "name": "Wooden Serving Platters",
+      "slug": "wooden-serving-platters",
+      "parentId": "cat_dining",
+      "path": [
+        "dining",
+        "wooden-serving-platters"
+      ],
+      "level": 1,
+      "pillar": "dining",
+      "sortOrder": 12,
+      "isActive": true,
+      "seo": {
+        "title": "Rosewood Platter Sets",
+        "description": "Carved serving accessories."
+      }
+    },
+    {
+      "id": "cat_lighting_lamps",
+      "name": "Pendant Lamps",
+      "slug": "pendant-lamps",
+      "parentId": "cat_lighting",
+      "path": [
+        "lighting",
+        "pendant-lamps"
+      ],
+      "level": 1,
+      "pillar": "lighting",
+      "sortOrder": 20,
+      "isActive": true,
+      "seo": {
+        "title": "Terracotta Pendant Hanging Lights",
+        "description": "Natural earthen glow."
+      }
+    },
+    {
+      "id": "cat_lighting_diyas",
+      "name": "Brass Diyas",
+      "slug": "brass-diyas",
+      "parentId": "cat_lighting",
+      "path": [
+        "lighting",
+        "brass-diyas"
+      ],
+      "level": 1,
+      "pillar": "lighting",
+      "sortOrder": 21,
+      "isActive": true,
+      "seo": {
+        "title": "Lost-wax Cast Brass Diyas",
+        "description": "Bastar metal craft."
+      }
+    },
+    {
+      "id": "cat_decor_panels",
+      "name": "Wall Panels",
+      "slug": "wall-panels",
+      "parentId": "cat_decor",
+      "path": [
+        "decor",
+        "wall-panels"
+      ],
+      "level": 1,
+      "pillar": "decor",
+      "sortOrder": 30,
+      "isActive": true,
+      "seo": {
+        "title": "Traditional Wall Panels & Paintings",
+        "description": "Madhubani/Warli."
+      }
+    },
+    {
+      "id": "cat_decor_mirrors",
+      "name": "Wooden Mirrors",
+      "slug": "wooden-mirrors",
+      "parentId": "cat_decor",
+      "path": [
+        "decor",
+        "wooden-mirrors"
+      ],
+      "level": 1,
+      "pillar": "decor",
+      "sortOrder": 31,
+      "isActive": true,
+      "seo": {
+        "title": "Mango Wood Mirrors",
+        "description": "Engraved glass mirrors."
+      }
+    },
+    {
+      "id": "cat_garden_planters",
+      "name": "Terracotta Planters",
+      "slug": "terracotta-planters",
+      "parentId": "cat_garden",
+      "path": [
+        "garden",
+        "terracotta-planters"
+      ],
+      "level": 1,
+      "pillar": "garden",
+      "sortOrder": 40,
+      "isActive": true,
+      "seo": {
+        "title": "Earthen Garden Planters",
+        "description": "Porious natural pots."
+      }
+    },
+    {
+      "id": "cat_garden_hanging",
+      "name": "Hanging Pots",
+      "slug": "hanging-pots",
+      "parentId": "cat_garden",
+      "path": [
+        "garden",
+        "hanging-pots"
+      ],
+      "level": 1,
+      "pillar": "garden",
+      "sortOrder": 41,
+      "isActive": true,
+      "seo": {
+        "title": "Jute Hanging Baskets",
+        "description": "Eco friendly hanging."
+      }
+    },
+    {
+      "id": "cat_jew_earrings",
+      "name": "Earrings",
+      "slug": "earrings",
+      "parentId": "cat_jewellery",
+      "path": [
+        "handcrafted-jewellery",
+        "earrings"
+      ],
+      "level": 1,
+      "pillar": "jewellery",
+      "sortOrder": 50,
+      "isActive": true,
+      "seo": {
+        "title": "Handcrafted Earrings",
+        "description": "Ethnic silver ear studs."
+      }
+    },
+    {
+      "id": "cat_jew_necklaces",
+      "name": "Necklaces & Pendants",
+      "slug": "necklaces-pendants",
+      "parentId": "cat_jewellery",
+      "path": [
+        "handcrafted-jewellery",
+        "necklaces-pendants"
+      ],
+      "level": 1,
+      "pillar": "jewellery",
+      "sortOrder": 51,
+      "isActive": true,
+      "seo": {
+        "title": "Royal Enamelled Necklaces",
+        "description": "Tribal silver neck pieces."
+      }
+    },
+    {
+      "id": "cat_jew_bangles",
+      "name": "Bangles & Bracelets",
+      "slug": "bangles-bracelets",
+      "parentId": "cat_jewellery",
+      "path": [
+        "handcrafted-jewellery",
+        "bangles-bracelets"
+      ],
+      "level": 1,
+      "pillar": "jewellery",
+      "sortOrder": 52,
+      "isActive": true,
+      "seo": {
+        "title": "Silver Filigree Bracelets",
+        "description": "Ornate wrist bangles."
+      }
+    }
+  ],
+  "products": [
+    {
+      "id": "prod_dining_1",
+      "title": "Bastar Tribal Brass Serving Bowl",
+      "slug": "bastar-tribal-brass-serving-bowl",
+      "sku": "CFT-DIN-BRS-01",
+      "description": "Handcasted in Bastar Chhatisgarh, this heavy brass serving bowl features typical fluid lost-wax tribal carvings along its outer rim. Ideal for festive styling or dry fruit serving.",
+      "artisanId": "artisan_suman",
+      "categoryPath": [
+        "dining",
+        "ceramic-bowls"
+      ],
+      "pillar": "dining",
+      "material": [
+        "brass"
+      ],
+      "artForm": [
+        "dhokra"
+      ],
+      "colors": [
+        "Gold",
+        "Bronze"
+      ],
+      "price": 189900,
+      "mrp": 249900,
+      "discountPct": 24,
+      "inventory": 15,
+      "variants": [
+        {
+          "sku": "CFT-DIN-BRS-01-S",
+          "label": "Medium (15cm)",
+          "price": 189900,
+          "mrp": 249900,
+          "inventory": 15
+        },
+        {
+          "sku": "CFT-DIN-BRS-01-L",
+          "label": "Large (22cm)",
+          "price": 289900,
+          "mrp": 349900,
+          "inventory": 8
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=600",
+          "alt": "Tribal brass bowl",
+          "type": "image",
+          "isPrimary": true
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?auto=format&fit=crop&q=80&w=600",
+          "alt": "Lost wax casting view",
+          "type": "image"
+        }
+      ],
+      "model3dUrl": "https://modelviewer.dev/shared-assets/models/Astronaut.glb",
+      "dimensionsCm": {
+        "l": 15,
+        "w": 15,
+        "h": 8
+      },
+      "weightGrams": 900,
+      "tags": [
+        "brass bowl",
+        "tribal",
+        "dining",
+        "bastar",
+        "festive decoration"
+      ],
+      "status": "active",
+      "ratingAvg": 4.9,
+      "ratingCount": 12,
+      "salesCount": 38,
+      "isNew": false,
+      "createdAt": "2026-05-06T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "prod_dining_2",
+      "title": "Studio Pottery Terracotta Platter Set",
+      "slug": "studio-pottery-terracotta-platter-set",
+      "sku": "CFT-DIN-POT-02",
+      "description": "Hand-thrown earthen dining platter accompanied by three organic side bowls. Fully fired to 1100°C for exceptional strength, hand-painted with tribal geometric figures.",
+      "artisanId": "artisan_gopal",
+      "categoryPath": [
+        "dining",
+        "ceramic-plates"
+      ],
+      "pillar": "dining",
+      "material": [
+        "terracotta",
+        "ceramic"
+      ],
+      "artForm": [
+        "studio-pottery",
+        "warli"
+      ],
+      "colors": [
+        "Tan",
+        "Black",
+        "White"
+      ],
+      "price": 145000,
+      "mrp": 199900,
+      "discountPct": 27,
+      "inventory": 24,
+      "variants": [
+        {
+          "sku": "CFT-DIN-POT-02-D",
+          "label": "Standard Set",
+          "price": 145000,
+          "mrp": 199900,
+          "inventory": 24
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?auto=format&fit=crop&q=80&w=600",
+          "alt": "Terracotta plated dining ware",
+          "type": "image",
+          "isPrimary": true
+        }
+      ],
+      "dimensionsCm": {
+        "l": 30,
+        "w": 30,
+        "h": 4
+      },
+      "weightGrams": 1500,
+      "tags": [
+        "plates",
+        "terracotta dinnerwear",
+        "studio pottery",
+        "earthen",
+        "organic"
+      ],
+      "status": "active",
+      "ratingAvg": 4.8,
+      "ratingCount": 16,
+      "salesCount": 42,
+      "isNew": false,
+      "createdAt": "2026-04-26T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "prod_light_1",
+      "title": "Bastar Hanging Antler Brass Lamp",
+      "slug": "bastar-hanging-antler-brass-lamp",
+      "sku": "CFT-LGT-BRS-03",
+      "description": "A striking structural brass pendant light using deer-motif lost wax panels, casting majestic intricate tribal lattice shadows across your walls and ceilings.",
+      "artisanId": "artisan_suman",
+      "categoryPath": [
+        "lighting",
+        "pendant-lamps"
+      ],
+      "pillar": "lighting",
+      "material": [
+        "brass"
+      ],
+      "artForm": [
+        "dhokra"
+      ],
+      "colors": [
+        "Gold",
+        "Ancient Gold"
+      ],
+      "price": 349000,
+      "mrp": 499000,
+      "discountPct": 30,
+      "inventory": 6,
+      "variants": [
+        {
+          "sku": "CFT-LGT-BRS-03-P",
+          "label": "Single Hanging Pillar",
+          "price": 349000,
+          "mrp": 499000,
+          "inventory": 6
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=600",
+          "alt": "Antique brass hanging light",
+          "type": "image",
+          "isPrimary": true
+        }
+      ],
+      "model3dUrl": "https://modelviewer.dev/shared-assets/models/Astronaut.glb",
+      "dimensionsCm": {
+        "l": 20,
+        "w": 20,
+        "h": 45
+      },
+      "weightGrams": 2200,
+      "tags": [
+        "brass lamp",
+        "dhokra light",
+        "pendant light",
+        "bastar decor"
+      ],
+      "status": "active",
+      "ratingAvg": 5,
+      "ratingCount": 4,
+      "salesCount": 12,
+      "isNew": true,
+      "createdAt": "2026-06-05T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "prod_light_2",
+      "title": "Terracotta Bell Hanging Pendant Light",
+      "slug": "terracotta-bell-hanging-pendant-light",
+      "sku": "CFT-LGT-POT-04",
+      "description": "Natural earthen dome bell styled hanging light. Handcrafted slip-carved geometric slots allow warm shafts of ambient light. Equipped with brass socket fixture.",
+      "artisanId": "artisan_gopal",
+      "categoryPath": [
+        "lighting",
+        "pendant-lamps"
+      ],
+      "pillar": "lighting",
+      "material": [
+        "terracotta"
+      ],
+      "artForm": [
+        "studio-pottery"
+      ],
+      "colors": [
+        "Earthy Brown",
+        "Clay Red"
+      ],
+      "price": 129000,
+      "mrp": 179000,
+      "discountPct": 27,
+      "inventory": 18,
+      "variants": [
+        {
+          "sku": "CFT-LGT-POT-04-B",
+          "label": "Terracotta Bell",
+          "price": 129000,
+          "mrp": 179000,
+          "inventory": 18
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=600",
+          "alt": "Clay hanging bell lamp",
+          "type": "image",
+          "isPrimary": true
+        }
+      ],
+      "dimensionsCm": {
+        "l": 22,
+        "w": 22,
+        "h": 22
+      },
+      "weightGrams": 1400,
+      "tags": [
+        "bell lamp",
+        "clay light",
+        "terracotta lighting",
+        "earthy modern style"
+      ],
+      "status": "active",
+      "ratingAvg": 4.7,
+      "ratingCount": 8,
+      "salesCount": 22,
+      "isNew": false,
+      "createdAt": "2026-05-11T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "prod_decor_1",
+      "title": "Warli Hand-Carved Framed Wall Story",
+      "slug": "warli-hand-carved-framed-wall-story",
+      "sku": "CFT-DEC-WRL-05",
+      "description": "Intricately hand-carved mango wood frame enclosing a rice-paste Warli folk tribal storytelling board. Showcases scenes of harvest, community bonds and forest rhythms.",
+      "artisanId": "artisan_gopal",
+      "categoryPath": [
+        "decor",
+        "wall-panels"
+      ],
+      "pillar": "decor",
+      "material": [
+        "wood",
+        "fabric"
+      ],
+      "artForm": [
+        "warli",
+        "hand-carved"
+      ],
+      "colors": [
+        "Mahogany",
+        "Cream"
+      ],
+      "price": 245000,
+      "mrp": 350000,
+      "discountPct": 30,
+      "inventory": 10,
+      "variants": [
+        {
+          "sku": "CFT-DEC-WRL-05-ST",
+          "label": "Medium Frame",
+          "price": 245000,
+          "mrp": 350000,
+          "inventory": 10
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=600",
+          "alt": "Tribal framed artwork",
+          "type": "image",
+          "isPrimary": true
+        }
+      ],
+      "dimensionsCm": {
+        "l": 45,
+        "w": 30,
+        "h": 3
+      },
+      "weightGrams": 1800,
+      "tags": [
+        "warli frame",
+        "tribal painting",
+        "wall panel",
+        "wood carved frame"
+      ],
+      "status": "active",
+      "ratingAvg": 4.8,
+      "ratingCount": 7,
+      "salesCount": 15,
+      "isNew": false,
+      "createdAt": "2026-05-21T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "prod_gard_1",
+      "title": "Hand-Etched Terracotta Wall Planter Pot",
+      "slug": "hand-etched-terracotta-wall-planter-pot",
+      "sku": "CFT-GAR-POT-06",
+      "description": "Earthy porous terracotta wall hanging pot with gorgeous, hand-etched waves. Porous nature encourages supreme soil breathing, keeping root-rot completely at bay.",
+      "artisanId": "artisan_gopal",
+      "categoryPath": [
+        "garden",
+        "terracotta-planters"
+      ],
+      "pillar": "garden",
+      "material": [
+        "terracotta"
+      ],
+      "artForm": [
+        "studio-pottery"
+      ],
+      "colors": [
+        "Brick Red"
+      ],
+      "price": 79900,
+      "mrp": 119900,
+      "discountPct": 33,
+      "inventory": 30,
+      "variants": [
+        {
+          "sku": "CFT-GAR-POT-06-W",
+          "label": "Etched Dome Pot",
+          "price": 79900,
+          "mrp": 119900,
+          "inventory": 30
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&q=80&w=600",
+          "alt": "Earthen wall planters",
+          "type": "image",
+          "isPrimary": true
+        }
+      ],
+      "dimensionsCm": {
+        "l": 18,
+        "w": 12,
+        "h": 18
+      },
+      "weightGrams": 800,
+      "tags": [
+        "planter pot",
+        "wall planter",
+        "terracotta pot",
+        "eco gardening"
+      ],
+      "status": "active",
+      "ratingAvg": 4.6,
+      "ratingCount": 20,
+      "salesCount": 64,
+      "isNew": false,
+      "createdAt": "2026-04-06T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "prod_jew_1",
+      "title": "Sterling Silver Meenakari Peacock Jhumkas",
+      "slug": "sterling-silver-meenakari-peacock-jhumkas",
+      "sku": "CFT-JEW-SLV-07",
+      "description": "Splendid sterling silver standard 925 royal peacock earrings, colored using high-class Chanderi hand-fired meenakari vitrified enameling with pure miniature glass beads drops.",
+      "artisanId": "artisan_lalita",
+      "categoryPath": [
+        "handcrafted-jewellery",
+        "earrings"
+      ],
+      "pillar": "jewellery",
+      "material": [
+        "silver",
+        "beadwork"
+      ],
+      "artForm": [
+        "meenakari"
+      ],
+      "colors": [
+        "Sky Blue",
+        "Teal Green",
+        "Silver"
+      ],
+      "price": 289000,
+      "mrp": 399000,
+      "discountPct": 27,
+      "inventory": 14,
+      "variants": [
+        {
+          "sku": "CFT-JEW-SLV-07-S",
+          "label": "Classic Sterling Blue",
+          "price": 289000,
+          "mrp": 399000,
+          "inventory": 14
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=600",
+          "alt": "Handmade silver meenakari earring drops",
+          "type": "image",
+          "isPrimary": true
+        }
+      ],
+      "dimensionsCm": {
+        "l": 6,
+        "w": 3,
+        "h": 2
+      },
+      "weightGrams": 28,
+      "tags": [
+        "silver earrings",
+        "meenakari jhumkas",
+        "royal ethnic jewelry",
+        "handmade jewelry"
+      ],
+      "status": "active",
+      "ratingAvg": 4.9,
+      "ratingCount": 15,
+      "salesCount": 45,
+      "isNew": false,
+      "createdAt": "2026-05-16T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "prod_jew_2",
+      "title": "Hand-Woven Royal Silk Thread Choker",
+      "slug": "hand-woven-royal-silk-thread-choker",
+      "sku": "CFT-JEW-THR-08",
+      "description": "Lustrous, deep peacock blue pure silk threads hand-braided and adorned with tiny silver beads and a brilliant hand-carved brass center dial casting ethnic royal elegance.",
+      "artisanId": "artisan_lalita",
+      "categoryPath": [
+        "handcrafted-jewellery",
+        "necklaces-pendants"
+      ],
+      "pillar": "jewellery",
+      "material": [
+        "thread",
+        "brass"
+      ],
+      "artForm": [
+        "block-print",
+        "meenakari"
+      ],
+      "colors": [
+        "Royal Blue",
+        "Gold"
+      ],
+      "price": 185000,
+      "mrp": 250000,
+      "discountPct": 26,
+      "inventory": 12,
+      "variants": [
+        {
+          "sku": "CFT-JEW-THR-08-C",
+          "label": "Standard Ribbon Tie",
+          "price": 185000,
+          "mrp": 250000,
+          "inventory": 12
+        }
+      ],
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&q=80&w=600",
+          "alt": "Silk thread silver necklace choker",
+          "type": "image",
+          "isPrimary": true
+        }
+      ],
+      "dimensionsCm": {
+        "l": 32,
+        "w": 4,
+        "h": 1
+      },
+      "weightGrams": 45,
+      "tags": [
+        "silk choker",
+        "thread necklace",
+        "traditional neckpiece",
+        "handmade mp arts"
+      ],
+      "status": "active",
+      "ratingAvg": 4.8,
+      "ratingCount": 10,
+      "salesCount": 23,
+      "isNew": false,
+      "createdAt": "2026-05-26T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    }
+  ],
+  "collections": [
+    {
+      "id": "col_warli_min",
+      "title": "Warli Minimalists",
+      "slug": "warli-minimal",
+      "sortOrder": 1,
+      "isActive": true,
+      "rule": {
+        "kind": "manual",
+        "productIds": [
+          "prod_dining_2",
+          "prod_decor_1"
+        ]
+      }
+    },
+    {
+      "id": "col_brass_fest",
+      "title": "Festive Brass Alloys",
+      "slug": "brass-festive",
+      "sortOrder": 2,
+      "isActive": true,
+      "rule": {
+        "kind": "manual",
+        "productIds": [
+          "prod_dining_1",
+          "prod_light_1"
+        ]
+      }
+    },
+    {
+      "id": "col_monsoon_earth",
+      "title": "Monsoon Earthenware",
+      "slug": "earthy-monsoon",
+      "sortOrder": 3,
+      "isActive": true,
+      "rule": {
+        "kind": "manual",
+        "productIds": [
+          "prod_dining_2",
+          "prod_light_2",
+          "prod_gard_1"
+        ]
+      }
+    }
+  ],
+  "carts": [],
+  "orders": [
+    {
+      "id": "order_1001",
+      "buyerUid": "user_buyer_1",
+      "items": [
+        {
+          "productId": "prod_dining_1",
+          "sku": "CFT-DIN-BRS-01-S",
+          "title": "Bastar Tribal Brass Serving Bowl",
+          "image": "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=300",
+          "unitPrice": 189900,
+          "qty": 1,
+          "artisanId": "artisan_suman",
+          "commissionPct": 5
+        }
+      ],
+      "pricing": {
+        "subtotal": 189900,
+        "discount": 0,
+        "giftWrap": 0,
+        "shipping": 12000,
+        "tax": 34182,
+        "total": 236082
+      },
+      "shippingAddress": {
+        "fullName": "Aanya Iyer",
+        "phone": "+91 99911 22334",
+        "line1": "Block C, Golden Woods",
+        "line2": "Whitefield",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "pincode": "560066",
+        "country": "IN",
+        "isDefault": true
+      },
+      "paymentMethod": "razorpay",
+      "paymentStatus": "paid",
+      "status": "delivered",
+      "razorpayOrderId": "order_rp_seed1",
+      "razorpayPaymentId": "pay_rp_seed1",
+      "invoiceNo": "CFT-2026-1001",
+      "timeline": [
+        {
+          "status": "created",
+          "at": "2026-05-24T22:56:53.350Z",
+          "note": "Order created."
+        },
+        {
+          "status": "paid",
+          "at": "2026-05-24T22:56:53.350Z",
+          "note": "Payment verified."
+        },
+        {
+          "status": "shipped",
+          "at": "2026-05-26T22:56:53.350Z",
+          "note": "Dispatched through Delhivery."
+        },
+        {
+          "status": "delivered",
+          "at": "2026-05-29T22:56:53.350Z",
+          "note": "Delivered in hand."
+        }
+      ],
+      "createdAt": "2026-05-24T22:56:53.350Z",
+      "updatedAt": "2026-05-29T22:56:53.350Z"
+    },
+    {
+      "id": "order_1002",
+      "buyerUid": "user_buyer_1",
+      "items": [
+        {
+          "productId": "prod_dining_2",
+          "sku": "CFT-DIN-POT-02-D",
+          "title": "Studio Pottery Terracotta Platter Set",
+          "image": "https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?auto=format&fit=crop&q=80&w=300",
+          "unitPrice": 145000,
+          "qty": 2,
+          "artisanId": "artisan_gopal",
+          "commissionPct": 5
+        },
+        {
+          "productId": "prod_gard_1",
+          "sku": "CFT-GAR-POT-06-W",
+          "title": "Hand-Etched Terracotta Wall Planter Pot",
+          "image": "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&q=80&w=300",
+          "unitPrice": 79900,
+          "qty": 1,
+          "artisanId": "artisan_gopal",
+          "commissionPct": 5
+        }
+      ],
+      "pricing": {
+        "subtotal": 369900,
+        "discount": 20000,
+        "giftWrap": 5000,
+        "shipping": 15000,
+        "tax": 66582,
+        "total": 436482
+      },
+      "shippingAddress": {
+        "fullName": "Aanya Iyer",
+        "phone": "+91 99911 22334",
+        "line1": "Block C, Golden Woods",
+        "line2": "Whitefield",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "pincode": "560066",
+        "country": "IN",
+        "isDefault": true
+      },
+      "paymentMethod": "razorpay",
+      "paymentStatus": "paid",
+      "status": "confirmed",
+      "razorpayOrderId": "order_rp_seed2",
+      "razorpayPaymentId": "pay_rp_seed2",
+      "invoiceNo": "CFT-2026-1002",
+      "timeline": [
+        {
+          "status": "created",
+          "at": "2026-06-03T22:56:53.350Z",
+          "note": "Order placed."
+        },
+        {
+          "status": "paid",
+          "at": "2026-06-03T22:56:53.350Z",
+          "note": "Payment received."
+        },
+        {
+          "status": "confirmed",
+          "at": "2026-06-04T22:56:53.350Z",
+          "note": "Awaiting shipping pickup."
+        }
+      ],
+      "createdAt": "2026-06-03T22:56:53.350Z",
+      "updatedAt": "2026-06-04T22:56:53.350Z"
+    }
+  ],
+  "shipments": [
+    {
+      "id": "ship_1",
+      "orderId": "order_1001",
+      "provider": "delhivery",
+      "awbCode": "AWB-55113912a",
+      "courier": "Delhivery Surface Premium",
+      "status": "delivered",
+      "history": [
+        {
+          "status": "manifested",
+          "location": "Bastar Outpost",
+          "at": "2026-05-25T22:56:53.350Z"
+        },
+        {
+          "status": "in_transit",
+          "location": "Raipur Hub",
+          "at": "2026-05-26T22:56:53.350Z"
+        },
+        {
+          "status": "out_for_delivery",
+          "location": "Bengaluru South East",
+          "at": "2026-05-29T22:56:53.350Z"
+        },
+        {
+          "status": "delivered",
+          "location": "Bengaluru Whitefield Office",
+          "at": "2026-05-29T22:56:53.350Z"
+        }
+      ],
+      "createdAt": "2026-05-25T22:56:53.350Z",
+      "updatedAt": "2026-05-29T22:56:53.350Z"
+    }
+  ],
+  "commissionProfiles": [
+    {
+      "id": "default",
+      "name": "Standard Artisan Commission Profile",
+      "onboardingPct": 3,
+      "perSalePct": 5,
+      "onboardingBase": 1000000,
+      "returnWindowDays": 7,
+      "isActive": true
+    }
+  ],
+  "commissionLedger": [
+    {
+      "id": "col_1",
+      "artisanId": "artisan_suman",
+      "type": "onboarding",
+      "baseAmount": 1000000,
+      "ratePct": 3,
+      "amount": 30000,
+      "status": "payable",
+      "createdAt": "2026-05-05T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "col_2",
+      "artisanId": "artisan_suman",
+      "type": "sale",
+      "orderId": "order_1001",
+      "productId": "prod_dining_1",
+      "baseAmount": 189900,
+      "ratePct": 5,
+      "amount": 9495,
+      "status": "payable",
+      "createdAt": "2026-05-24T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    },
+    {
+      "id": "col_3",
+      "artisanId": "artisan_gopal",
+      "type": "sale",
+      "orderId": "order_1002",
+      "productId": "prod_dining_2",
+      "baseAmount": 290000,
+      "ratePct": 5,
+      "amount": 14500,
+      "status": "accrued",
+      "createdAt": "2026-06-03T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    }
+  ],
+  "payouts": [
+    {
+      "id": "pay_1",
+      "artisanId": "artisan_suman",
+      "entryIds": [
+        "col_1"
+      ],
+      "amount": 30000,
+      "status": "paid",
+      "method": "bank_transfer",
+      "reference": "TXN-77312948",
+      "initiatedBy": "user_admin",
+      "createdAt": "2026-06-03T22:56:53.350Z",
+      "paidAt": "2026-06-03T22:56:53.350Z"
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "camp_1",
+      "title": "Artisan Healthcare and Welfare Trust Fund",
+      "slug": "artisan-healthcare-fund",
+      "category": "artisan_welfare",
+      "beneficiarySummary": "Affectionate coverage for medical, life, and accident insurances for rural Indian karigars and their elder kin.",
+      "story": "Often living in extreme remoteness, veteran weavers and potters lack immediate reach to clinics. This fund finances fully loaded primary health checkup vans visiting Bastar, Khurda, and Chanderi craft clusters once every fortnight.",
+      "cover": {
+        "url": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600",
+        "alt": "Artisan cluster",
+        "type": "image"
+      },
+      "goalAmount": 50000000,
+      "raisedAmount": 1250000,
+      "donorCount": 22,
+      "verifiedDocUrls": [
+        "https://example.com/certificate-of-trust-welfare.pdf"
+      ],
+      "disbursementMilestones": [
+        {
+          "stage": "First Bastar Healthcare Mobile Camp setup",
+          "amount": 500000,
+          "status": "verified",
+          "proofUrl": "#",
+          "recipient": "Raipur Mission Clinic",
+          "releasedAt": "2026-06-02T22:56:53.350Z"
+        },
+        {
+          "stage": "Chanderi Weaver Cluster Health Auditing Support",
+          "amount": 450000,
+          "status": "planned"
+        }
+      ],
+      "isActive": true,
+      "createdAt": "2026-06-05T22:56:53.350Z",
+      "updatedAt": "2026-06-05T22:56:53.350Z"
+    }
+  ],
+  "donations": [
+    {
+      "id": "don_1",
+      "donorUid": "user_buyer_1",
+      "donorName": "Aanya Iyer",
+      "donorEmail": "aanya@example.com",
+      "campaignId": "camp_1",
+      "amount": 125000,
+      "razorpayPaymentId": "pay_rp_don1",
+      "receiptNo": "80G-2026-9041",
+      "status": "paid",
+      "createdAt": "2026-06-01T22:56:53.350Z"
+    }
+  ],
+  "aiOutreach": [
+    {
+      "id": "out_1",
+      "query": "Bastar metal craft specialists",
+      "candidateName": "Ramesh Sonkar",
+      "candidateRegion": "Kondagaon, Bastar Division",
+      "candidateCraft": [
+        "dhokra"
+      ],
+      "contactChannel": "email",
+      "contactValue": "ramesh.bastar@crafts.in",
+      "emailDraft": "Dear Ramesh-ji,\n\nWe saw your intricate copper figurines of forest gods during the Dilli Haat craft fair. We are building an direct digital storefront on Craftifue to showcase Bastar metals directly to buyers. With our 3% onboarding support, we would love to list your crafts and tell your artistic story to patrons worldwide.\n\nWarmly, \nRD Craftifue India Team",
+      "status": "drafted",
+      "createdAt": "2026-06-05T22:56:53.351Z",
+      "updatedAt": "2026-06-05T22:56:53.351Z"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "rev_1",
+      "productId": "prod_dining_1",
+      "buyerUid": "user_buyer_1",
+      "rating": 5,
+      "title": "Incredibly authentic feel",
+      "body": "The lost-wax brass carvings feel deeply textured. You can immediately feel the weight and gravity of the maker in it!",
+      "verifiedPurchase": true,
+      "createdAt": "2026-06-05T22:56:53.351Z"
+    }
+  ],
+  "coupons": [
+    {
+      "id": "KART10",
+      "code": "KART10",
+      "type": "percent",
+      "value": 10,
+      "minOrder": 100000,
+      "startsAt": "2026-06-05T22:56:53.351Z",
+      "endsAt": "2026-09-13T22:56:53.351Z",
+      "usedCount": 3,
+      "isActive": true
+    }
+  ],
+  "notifications": [
+    {
+      "id": "not_1",
+      "uid": "user_admin",
+      "kind": "order",
+      "title": "New Order Received",
+      "body": "Order #1002 has been placed successfully by Aanya Iyer.",
+      "read": false,
+      "createdAt": "2026-06-05T22:56:53.351Z"
+    }
+  ],
+  "spaces": [],
+  "lookbooks": [
+    {
+      "id": "lb_festive",
+      "title": "Monsoon Festive Brass Elegance",
+      "slug": "brass-festive-elegance",
+      "theme": "Adorning modern minimal dining spaces with traditional heavy cast lost-wax ritual objects.",
+      "heroModel3dUrl": "https://modelviewer.dev/shared-assets/models/Astronaut.glb",
+      "productIds": [
+        "prod_dining_1",
+        "prod_light_1"
+      ],
+      "trendScore": 92,
+      "refreshedAt": "2026-06-05T22:56:53.351Z"
+    },
+    {
+      "id": "lb_earthen",
+      "title": "Clay & Hand-Etched Terracotta",
+      "slug": "clay-terracotta-gardening",
+      "theme": "Eco-breathing earthen materials blended with modern geometric carving.",
+      "heroModel3dUrl": "https://modelviewer.dev/shared-assets/models/Astronaut.glb",
+      "productIds": [
+        "prod_dining_2",
+        "prod_light_2",
+        "prod_gard_1"
+      ],
+      "trendScore": 88,
+      "refreshedAt": "2026-06-05T22:56:53.351Z"
+    }
+  ],
+  "logoConfig": {
+    "customImage": null,
+    "brandName": "Craftifue",
+    "primaryColor": "#C4683B"
+  }
+}

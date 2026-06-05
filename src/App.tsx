@@ -18,6 +18,8 @@ interface DatabaseState {
     brandName: string;
     primaryColor: string;
   };
+  notifications: any[];
+  autoStockRefill: boolean;
 }
 
 export default function App() {
@@ -32,9 +34,25 @@ export default function App() {
     couponCode: null
   });
   
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminPath, setIsAdminPath] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorText, setErrorText] = useState('');
+
+  // Route tracker separation
+  useEffect(() => {
+    const handleUrlTracking = () => {
+      const isAd = window.location.pathname === '/admin' || window.location.search.includes('admin=true');
+      setIsAdminPath(isAd);
+    };
+    handleUrlTracking();
+    window.addEventListener('popstate', handleUrlTracking);
+    return () => window.removeEventListener('popstate', handleUrlTracking);
+  }, []);
+
+  const navigateToStorefront = () => {
+    window.history.pushState({}, '', '/');
+    setIsAdminPath(false);
+  };
 
   // Settle real-time API sync matching /api/db endpoint
   const fetchLatestDatabaseState = async () => {
@@ -105,47 +123,45 @@ export default function App() {
     );
   }
 
+  if (isAdminPath) {
+    return (
+      <div className="min-h-screen bg-[#F6F1E7] selection:bg-brand-clay selection:text-brand-paper py-6 px-4 md:px-8">
+        <div className="max-w-7xl mx-auto space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-brand-ink text-brand-paper px-6 py-4 rounded-3xl border border-brand-line shadow-lg gap-4">
+            <div className="flex items-center space-x-2">
+              <span className="h-2 w-2 rounded-full bg-brand-clay animate-ping" />
+              <p className="text-xs font-mono tracking-wider text-brand-paper/80 uppercase">🔐 SECURE INTERNAL CONTROL ACCESS POINT</p>
+            </div>
+            <button 
+              onClick={navigateToStorefront}
+              className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper font-sans text-xs px-4 py-2 font-bold rounded-2xl transition-all select-none cursor-pointer border-0 shadow"
+            >
+              ← Back to Consumer Storefront
+            </button>
+          </div>
+          <AdminPanel 
+            db={db}
+            onUpdateDb={handleUpdateDatabase}
+            onRefreshDb={fetchLatestDatabaseState}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-brand-paper selection:bg-brand-clay selection:text-brand-paper">
       
-      {/* 1. MAIN CLIENT STOREFRONT LAYER */}
+      {/* 1. COMPACT PUBLIC CONSUMER STOREFRONT LAYER WITH ABSOLUTELY HIDDEN ADMIN PANEL ACCESS */}
       <Storefront 
         db={db}
         cart={cart}
         onUpdateCart={setCart}
         onPlaceOrder={handlePlaceOrder}
         onRefreshDb={fetchLatestDatabaseState}
-        showAdminLink={true}
-        onToggleAdmin={() => setIsAdminOpen(!isAdminOpen)}
+        showAdminLink={false}
+        onToggleAdmin={() => {}}
       />
-
-      {/* 2. DOCKABLE ADMINISTRATOR CONSOLE PANEL PANEL */}
-      {isAdminOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-end justify-center animate-in slide-in-from-bottom duration-300">
-          <div className="w-full max-w-7xl h-[85vh] bg-brand-paper shadow-2xl border-t border-brand-line rounded-t-3xl overflow-y-auto flex flex-col justify-between">
-            
-            {/* Top closer handle */}
-            <div className="sticky top-0 z-10 bg-brand-ink text-brand-paper px-6 py-2 flex items-center justify-between border-b border-brand-line shadow-sm">
-              <span className="text-xs text-brand-paper/60 font-medium">✨ Administrator database entries update in real time on the Storefront</span>
-              <button 
-                onClick={() => setIsAdminOpen(false)}
-                className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-1 px-3.5 rounded-lg font-bold font-mono transition-all uppercase"
-                id="btn-close-admin-drawer"
-              >
-                Close Dock x
-              </button>
-            </div>
-
-            <div className="flex-1 p-4 md:p-6 overflow-y-auto">
-              <AdminPanel 
-                db={db}
-                onUpdateDb={handleUpdateDatabase}
-                onRefreshDb={fetchLatestDatabaseState}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

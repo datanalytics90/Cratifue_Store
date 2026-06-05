@@ -6,7 +6,7 @@ import {
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend 
 } from 'recharts';
-import { Product, Artisan, Category, Campaign, Coupon, CommissionEntry } from '../types/firestore';
+import { Product, Artisan, Category, Campaign, Coupon, CommissionEntry, Lookbook } from '../types/firestore';
 
 interface AdminPanelProps {
   db: {
@@ -19,13 +19,15 @@ interface AdminPanelProps {
     orders: any[];
     lookbooks: any[];
     logoConfig: { customImage: string | null; brandName: string; primaryColor: string };
+    notifications: any[];
+    autoStockRefill: boolean;
   };
   onUpdateDb: (updatedData: any) => void;
   onRefreshDb: () => void;
 }
 
 export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'products' | 'artisans' | 'outreach' | 'logo' | 'campaigns'>('analytics');
+  const [activeTab, setActiveTab ] = useState<'analytics' | 'products' | 'artisans' | 'outreach' | 'logo' | 'campaigns' | 'lookbooks' | 'coupons' | 'inventory'>('analytics');
   
   // AI States
   const [isAiPredicting, setIsAiPredicting] = useState(false);
@@ -37,9 +39,17 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
   const [logoColor, setLogoColor] = useState(db.logoConfig.primaryColor);
   const [logoInput, setLogoInput] = useState(db.logoConfig.customImage || '');
 
-  // Catalog edit States
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editingArtisan, setEditingArtisan] = useState<Artisan | null>(null);
+  // Catalog Edit / Creational Buffer States
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingArtisan, setEditingArtisan] = useState<any>(null);
+  const [editingCampaign, setEditingCampaign] = useState<any>(null);
+  const [editingLookbook, setEditingLookbook] = useState<any>(null);
+  const [editingCoupon, setEditingCoupon] = useState<any>(null);
+
+  // Inventory & Refill States
+  const [manualStocks, setManualStocks] = useState<Record<string, number>>({});
+  const [isUpdatingConfig, setIsUpdatingConfig] = useState(false);
+  const [isRefillingBatch, setIsRefillingBatch] = useState(false);
 
   // Lead Outreach States (Phase 5 Expert Finder)
   const [outreachBrief, setOutreachBrief] = useState('Chanderi weavers & zari stitchers in Chanderi dist.');
@@ -132,9 +142,9 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
             id: `col_${Date.now()}`,
             artisanId: newArtisan.id,
             type: 'onboarding',
-            baseAmount: 1000000, // ₹10,000 reference base
+            baseAmount: 1000000, 
             ratePct: 3,
-            amount: 30000,       // ₹300 reward Paise
+            amount: 30000,       
             status: 'payable',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -155,7 +165,6 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
   const handleFinderAgentSleuth = async () => {
     setIsFindingLeads(true);
     try {
-      // Trigger AI to find candidate details
       const response = await fetch('/api/gemini/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -195,28 +204,16 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'description',
-          payload: { title, artForm, material }
+          payload: { title, artForm: artForm || 'traditional', material: material || 'organic' }
         })
       });
       const data = await res.json();
       
-      // Update local state or edit buffer
-      if (editingProduct && editingProduct.id === prodId) {
-        setEditingProduct({
-          ...editingProduct,
+      if (editingProduct) {
+        setEditingProduct((prev: any) => ({
+          ...prev,
           description: data.content
-        });
-      } else {
-        // Direct DB update
-        const pIndex = db.products.findIndex(p => p.id === prodId);
-        if (pIndex !== -1) {
-          const updated = { ...db.products[pIndex], description: data.content };
-          fetch(`/api/db/products/${prodId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updated)
-          }).then(() => onRefreshDb());
-        }
+        }));
       }
     } catch (err) {
       console.error(err);
@@ -233,26 +230,16 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'story',
-          payload: { name, region, specialties: specs }
+          payload: { name, region, specialties: specs || [] }
         })
       });
       const data = await res.json();
       
-      if (editingArtisan && editingArtisan.id === artId) {
-        setEditingArtisan({
-          ...editingArtisan,
+      if (editingArtisan) {
+        setEditingArtisan((prev: any) => ({
+          ...prev,
           story: data.content
-        });
-      } else {
-        const aIndex = db.artisans.findIndex(a => a.id === artId);
-        if (aIndex !== -1) {
-          const updated = { ...db.artisans[aIndex], story: data.content };
-          fetch(`/api/db/artisans/${artId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updated)
-          }).then(() => onRefreshDb());
-        }
+        }));
       }
     } catch (err) {
       console.error(err);
@@ -281,53 +268,219 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
     }
   };
 
-  const handleProductSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProduct) return;
-    fetch(`/api/db/products/${editingProduct.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editingProduct)
-    }).then(() => {
-      onRefreshDb();
-      setEditingProduct(null);
-      alert('Product saved successfully.');
-    });
+  // Generic Save / Submit handler that resolves POST or PUT correctly
+  const handleSaveItem = async (collection: string, currentItem: any, setEditingItem: (val: any) => void) => {
+    try {
+      const collectionItems = db[collection as keyof typeof db] as any[];
+      const isEditing = currentItem.id && collectionItems?.some((x: any) => x.id === currentItem.id);
+      
+      const itemId = isEditing ? currentItem.id : `${collection.substring(0, 3)}_${Date.now()}`;
+      const url = isEditing 
+        ? `/api/db/${collection}/${itemId}` 
+        : `/api/db/${collection}`;
+      const method = isEditing ? 'PUT' : 'POST';
+
+      // Attach ID and compute auxiliary fields
+      let payload = { ...currentItem };
+      if (!isEditing) {
+        payload.id = itemId;
+      }
+
+      if (collection === 'products') {
+        const priceVal = Number(payload.price) || 0;
+        const mrpVal = Number(payload.mrp) || priceVal;
+        payload.discountPct = mrpVal > 0 ? Math.round(((mrpVal - priceVal) / mrpVal) * 100) : 0;
+        payload.slug = payload.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, '-');
+      } else if (collection === 'artisans') {
+        payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, '-');
+      } else if (collection === 'campaigns') {
+        payload.slug = payload.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, '-');
+      } else if (collection === 'lookbooks') {
+        payload.slug = payload.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, '-');
+      } else if (collection === 'coupons') {
+        payload.id = payload.code.toUpperCase();
+        payload.code = payload.code.toUpperCase();
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        onRefreshDb();
+        setEditingItem(null);
+        alert(`✨ Saved ${collection.slice(0, -1)} successfully! Live changes applied immediately.`);
+      } else {
+        const errorData = await res.json();
+        alert(`Failed to save: ${errorData.error || 'Server error'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while persisting updates to database.');
+    }
   };
+
+  // Generic deletion handler
+  const handleDeleteItem = async (collection: string, id: string, setEditingItem: (val: any) => void) => {
+    if (!confirm(`Are you sure you want to permanently delete this ${collection.slice(0, -1)}?`)) return;
+    try {
+      const res = await fetch(`/api/db/${collection}/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        onRefreshDb();
+        setEditingItem(null);
+        alert('🗑️ Deleted successfully! Page updated.');
+      } else {
+        alert('Could not delete item. Verify collection parameters.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Connection error during deletion request.');
+    }
+  };
+
+  // Creational Template Initializers
+  const initNewProduct = () => ({
+    id: '',
+    title: 'New Artisanal Creation',
+    slug: '',
+    sku: `CFT-NEW-${Math.floor(1000 + Math.random() * 9000)}`,
+    description: 'Beautifully crafted using fine components and traditional wisdom.',
+    artisanId: db.artisans[0]?.id || '',
+    categoryPath: ['dining', 'ceramic-bowls'],
+    pillar: 'dining',
+    material: ['terracotta'],
+    artForm: ['studio-pottery'],
+    colors: ['Earthy Brown'],
+    price: 120000, 
+    mrp: 150000,   
+    discountPct: 20,
+    inventory: 10,
+    variants: [],
+    images: [{ url: 'https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?auto=format&fit=crop&q=80&w=600', type: 'image' }],
+    dimensionsCm: { l: 20, w: 20, h: 20 },
+    weightGrams: 800,
+    tags: ['new-arrival', 'handcrafted'],
+    status: 'active',
+    ratingAvg: 4.8,
+    ratingCount: 1,
+    salesCount: 0,
+    isNew: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+
+  const initNewArtisan = () => ({
+    id: '',
+    ownerUid: `user_seller_${Date.now()}`,
+    name: 'Shree Karigar',
+    slug: '',
+    region: 'Kondagaon, Bastar Division',
+    craftSpecialty: ['dhokra'],
+    materials: ['brass'],
+    bio: 'Renowned expert practicing regional heritage artistry.',
+    story: 'Directly casting oral legacies handed down through historic workshops.',
+    portfolio: [{ url: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=600', type: 'image' }],
+    ratingAvg: 4.9,
+    productCount: 0,
+    onboardingStatus: 'onboarded',
+    commissionProfileId: 'default',
+    kycVerified: true,
+    payoutMasked: '•••• 7792',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+
+  const initNewCampaign = () => ({
+    id: '',
+    title: 'Monsoon Rainwater & Kiln Security Aid',
+    slug: '',
+    category: 'artisan_welfare',
+    beneficiarySummary: 'Kiln sheds, fuel subsidies, and emergency rainfall protections.',
+    story: 'We distribute high fire wood and organic clay slates to assist makers during monsoon surges, keeping traditional looms shielded.',
+    cover: { url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600', type: 'image' },
+    goalAmount: 20000000, 
+    raisedAmount: 0,
+    donorCount: 0,
+    verifiedDocUrls: [],
+    disbursementMilestones: [],
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+
+  const initNewLookbook = () => ({
+    id: '',
+    title: 'Cozy Earth Studio Room Decor',
+    slug: '',
+    theme: 'Interpreting folk handlooms and studio pots inside clean contemporary residential spaces.',
+    heroModel3dUrl: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+    productIds: [db.products[0]?.id || 'prod_dining_1'],
+    trendScore: 92,
+    refreshedAt: new Date().toISOString()
+  });
+
+  const initNewCoupon = () => ({
+    id: '',
+    code: 'CRAFT15',
+    type: 'percent',
+    value: 15,
+    minOrder: 80000, 
+    startsAt: new Date().toISOString(),
+    endsAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    usedCount: 0,
+    isActive: true
+  });
 
   return (
     <div className="bg-brand-paper border border-brand-line rounded-3xl overflow-hidden shadow-xl" id="admin-workspace-layer">
-      {/* Drawer Title Bar */}
-      <div className="bg-brand-ink text-brand-paper px-6 py-4 flex items-center justify-between border-b border-brand-line">
+      {/* Top Banner Navigation */}
+      <div className="bg-brand-ink text-brand-paper px-6 py-4 flex flex-col md:flex-row items-center justify-between border-b border-brand-line">
         <div className="flex items-center space-x-2">
           <TrendingUp className="w-5 h-5 text-brand-clay font-bold animate-pulse" />
           <h2 className="font-serif font-black text-xl tracking-tight uppercase">Craftifue Admin Console</h2>
         </div>
-        <p className="text-xs text-brand-paper/70 font-mono">ROLE: PLATFORM ADMINISTRATOR</p>
+        <div className="flex items-center space-x-2 mt-2 md:mt-0 font-mono text-xs">
+          <span className="bg-brand-clay/20 text-brand-clay px-2 py-0.5 rounded text-[10px] font-bold">LIVE SYNC WORKING</span>
+          <p className="text-brand-paper/75">ROLE: PLATFORM ADMINISTRATOR</p>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-brand-line bg-brand-paper-dark/60 flex space-x-1 p-2 overflow-x-auto no-scrollbar">
+      {/* Tabs list bar */}
+      <div className="border-b border-brand-line bg-brand-paper-dark/60 flex space-x-1 p-2 overflow-x-auto no-scrollbar decoration-none">
         {[
           { id: 'analytics', label: '📊 Predictive Trends AI', icon: TrendingUp },
-          { id: 'products', label: '🛋️ Product Registry', icon: Package },
+          { id: 'products', label: '🛋️ Products Register', icon: Package },
+          { id: 'inventory', label: '⚙️ Inventory & Refills', icon: RefreshCw },
           { id: 'artisans', label: '🎭 Artisan Directory', icon: Users },
-          { id: 'outreach', label: '🪶 Human-in-the-Loop CRM', icon: Mail },
-          { id: 'logo', label: '🎨 Real-Time Brand Update', icon: Palette },
-          { id: 'campaigns', label: '📢 Relief Campaigns', icon: Megaphone }
+          { id: 'outreach', label: '🪶 Human CRM Finder', icon: Mail },
+          { id: 'logo', label: '🎨 Site Logo & Brand', icon: Palette },
+          { id: 'campaigns', label: '📢 Relief Campaigns', icon: Megaphone },
+          { id: 'lookbooks', label: '📖 Editorial Lookbooks', icon: Compass },
+          { id: 'coupons', label: '🎫 Promo Coupons', icon: CheckSquare }
         ].map((t) => {
           const Icon = t.icon;
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
-              className={`flex items-center space-x-2 px-4 py-2 text-sm font-sans font-medium rounded-xl transition-all cursor-pointer ${
+              onClick={() => {
+                setActiveTab(t.id as any);
+                setEditingProduct(null);
+                setEditingArtisan(null);
+                setEditingCampaign(null);
+                setEditingLookbook(null);
+                setEditingCoupon(null);
+              }}
+              className={`flex items-center space-x-2 px-3 py-1.5 text-xs font-sans font-medium rounded-xl transition-all cursor-pointer select-none border-0 ${
                 activeTab === t.id 
-                  ? 'bg-brand-clay text-brand-paper shadow-md' 
+                  ? 'bg-brand-clay text-brand-paper shadow-md font-bold' 
                   : 'text-brand-ink-soft hover:bg-brand-paper-dark hover:text-brand-ink'
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-3.5 h-3.5" />
               <span>{t.label}</span>
             </button>
           );
@@ -335,7 +488,8 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
       </div>
 
       <div className="p-6">
-        {/* 1. ANALYTICS PREDICTIVE ENGINE */}
+        
+        {/* 1. ANALYTICS TABS */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -346,10 +500,10 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
               <button 
                 onClick={triggerAiPredictiveModel}
                 disabled={isAiPredicting}
-                className="bg-brand-teal hover:bg-brand-teal/90 text-brand-paper px-3 py-2 rounded-xl text-xs font-medium inline-flex items-center space-x-2 disabled:opacity-45"
+                className="bg-brand-teal hover:bg-brand-teal/90 text-brand-paper px-3 py-2 rounded-xl text-xs font-medium inline-flex items-center space-x-2 disabled:opacity-45 select-none"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isAiPredicting ? 'animate-spin' : ''}`} />
-                <span>Re-Run AI Engine</span>
+                <span>Re-Run AI Model</span>
               </button>
             </div>
 
@@ -379,7 +533,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                 <h4 className="font-serif font-bold text-2xl text-brand-clay mt-1">
                   ₹{(db.commissionLedger.reduce((sum, e) => sum + (e.status !== 'paid' ? e.amount : 0), 0) / 100).toLocaleString('en-IN')}
                 </h4>
-                <span className="text-[10px] text-brand-clay-deep font-mono">Sellers accrued payables</span>
+                <span className="text-[10px] text-brand-clay-deep font-mono">Artisans accrued payorable</span>
               </div>
             </div>
 
@@ -391,8 +545,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
               </div>
             ) : aiAnalysis ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Visual Chart */}
-                <div className="lg:col-span-2 bg-brand-paper border border-brand-line p-4 rounded-2xl shadow-sm">
+                <div className="lg:col-span-2 bg-brand-paper border border-brand-line p-4 rounded-2xl shadow-sm animate-in fade-in duration-300">
                   <h4 className="font-serif font-bold text-sm text-brand-ink mb-4 flex items-center">
                     <TrendingUp className="w-4 h-4 text-brand-clay mr-1.5" /> 3-Month Automated Demand Forecast (June - August 2026)
                   </h4>
@@ -426,15 +579,13 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                   </div>
                 </div>
 
-                {/* Gemini Text Insight Summary */}
-                <div className="bg-brand-paper-dark/30 border border-brand-line p-4 rounded-2xl flex flex-col justify-between">
+                <div className="bg-brand-paper-dark/30 border border-brand-line p-4 rounded-2xl flex flex-col justify-between animate-in fade-in duration-300">
                   <div>
-                    <span className="text-[9px] bg-brand-clay text-white px-2 py-0.5 rounded-full font-sans uppercase tracking-widest font-bold">Predictive Smart Analyst</span>
+                    <span className="text-[9px] bg-brand-clay text-white px-2 py-0.5 rounded-full font-sans uppercase tracking-widest font-bold">Predictive Expert Analyst</span>
                     <h4 className="font-serif font-black text-brand-ink text-base mt-2">Gemini Demand Insights</h4>
                     <p className="text-xs text-brand-ink-soft italic font-serif mt-1">"{aiAnalysis.forecastSummary}"</p>
                     
                     <div className="mt-4 text-xs text-brand-ink leading-relaxed prose prose-sm overflow-y-auto max-h-40 scrollbar-thin">
-                      {/* Formatted inline blocks of output */}
                       <p className="whitespace-pre-line text-xs font-sans">{aiAnalysis.analysisMarkdown?.replace(/###|##|#/g, '')}</p>
                     </div>
                   </div>
@@ -445,8 +596,8 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
               </div>
             ) : (
               <div className="bg-brand-paper-dark/30 border border-brand-line h-40 flex items-center justify-center rounded-2xl">
-                <button onClick={triggerAiPredictiveModel} className="bg-brand-clay text-brand-paper px-4 py-2 rounded-xl text-sm font-sans flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-yellow-200" />
+                <button onClick={triggerAiPredictiveModel} className="bg-brand-clay text-brand-paper px-4 py-2 rounded-xl text-sm font-sans flex items-center space-x-2 border-0 cursor-pointer">
+                  <Sparkles className="w-4 h-4 text-yellow-200 animate-spin" />
                   <span>Execute Neural Predictive Audit</span>
                 </button>
               </div>
@@ -454,29 +605,52 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
           </div>
         )}
 
-        {/* 2. PRODUCT CRUD TAB */}
+        {/* 2. PRODUCTS DIRECTORY (CRUD) */}
         {activeTab === 'products' && (
           <div className="space-y-6">
-            <h3 className="font-serif font-bold text-lg text-brand-ink">Product Database Register</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-lg text-brand-ink">Product Database Register</h3>
+                <p className="text-xs text-brand-ink-soft">Edit, Add or Remove products dynamically from headers, catalog galleries and detail pages instantly.</p>
+              </div>
+              <button
+                onClick={() => setEditingProduct(initNewProduct())}
+                className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans font-bold flex items-center justify-center space-x-1 border-0 cursor-pointer select-none"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Onboard New Product</span>
+              </button>
+            </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* List grid */}
-              <div className="lg:col-span-2 space-y-3 max-h-[400px] overflow-y-auto pr-2">
+              <div className="lg:col-span-7 space-y-3 max-h-[550px] overflow-y-auto pr-2">
                 {db.products.map((p) => (
-                  <div key={p.id} className="bg-brand-paper border border-brand-line p-3 rounded-2xl flex items-center justify-between hover:border-brand-clay transition-all">
+                  <div key={p.id} className={`bg-brand-paper border p-3 rounded-2xl flex items-center justify-between hover:border-brand-clay transition-all ${editingProduct?.id === p.id ? 'border-brand-clay shadow' : 'border-brand-line'}`}>
                     <div className="flex items-center space-x-3">
-                      <img src={p.images[0]?.url} alt={p.title} className="w-12 h-12 object-cover rounded-xl bg-stone-100" />
+                      <img src={p.images[0]?.url} alt={p.title} className="w-14 h-14 object-cover rounded-xl bg-stone-100 border border-brand-line" />
                       <div>
                         <h4 className="font-serif text-sm font-bold text-brand-ink">{p.title}</h4>
-                        <p className="text-xs text-brand-ink-soft">SKU: {p.sku} | Price: ₹{(p.price / 100).toLocaleString('en-IN')} | Stock: <span className={p.inventory < 10 ? 'text-brand-clay font-bold' : 'text-green-700'}>{p.inventory}</span></p>
+                        <div className="text-xs text-brand-ink-soft flex flex-wrap gap-x-2 items-center">
+                          <span>SKU: <span className="font-mono text-[10px] bg-brand-paper-dark px-1 rounded">{p.sku}</span></span>
+                          <span>Price: <b>₹{(p.price / 100).toLocaleString('en-IN')}</b></span>
+                          <span>Stock: <span className={`font-bold ${p.inventory < 5 ? 'text-brand-clay' : 'text-green-700'}`}>{p.inventory}</span></span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 border-s border-brand-line pl-3">
                       <button 
                         onClick={() => setEditingProduct(p)}
-                        className="text-xs border border-brand-line hover:border-brand-clay text-brand-ink px-3 py-1.5 rounded-xl transition-all font-sans"
+                        className="text-xs border border-brand-line hover:border-brand-clay bg-brand-paper text-brand-ink px-2.5 py-1.5 rounded-xl transition-all font-sans cursor-pointer"
                       >
                         Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteItem('products', p.id, setEditingProduct)}
+                        className="text-xs border border-brand-line hover:bg-brand-clay hover:text-brand-paper text-brand-clay-deep p-1.5 rounded-xl transition-all cursor-pointer"
+                        title="Delete product"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -484,61 +658,162 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
               </div>
 
               {/* Editor sidebar */}
-              <div className="bg-brand-paper-dark/30 border border-brand-line p-4 rounded-3xl">
+              <div className="lg:col-span-5 bg-brand-paper-dark/35 border border-brand-line p-5 rounded-3xl sticky top-4">
                 {editingProduct ? (
-                  <form onSubmit={handleProductSubmit} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-serif font-bold text-brand-ink">Modify Craft Product</h4>
-                      <button type="button" onClick={() => setEditingProduct(null)} className="text-xs text-brand-ink-soft hover:text-brand-clay">Cancel</button>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-sans text-brand-ink-soft mb-1">Product Name</label>
-                      <input 
-                        type="text" 
-                        value={editingProduct.title} 
-                        onChange={(e) => setEditingProduct({ ...editingProduct, title: e.target.value })}
-                        className="w-full bg-brand-paper border border-brand-line px-3 py-2 text-sm rounded-xl focus:outline-none"
-                      />
+                  <form onSubmit={(e) => { e.preventDefault(); handleSaveItem('products', editingProduct, setEditingProduct); }} className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-brand-line">
+                      <div>
+                        <span className="text-[10px] text-brand-clay font-bold font-mono tracking-wider uppercase block">{editingProduct.id ? 'EDIT MODE' : 'CREATE MODE'}</span>
+                        <h4 className="font-serif font-black text-brand-ink text-base">{editingProduct.title || 'Create Product'}</h4>
+                      </div>
+                      <button type="button" onClick={() => setEditingProduct(null)} className="text-xs text-brand-ink-soft hover:text-brand-clay font-mono">Cancel x</button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs font-sans text-brand-ink-soft mb-1">Price (Paise)</label>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Product Title</label>
                         <input 
-                          type="number" 
-                          value={editingProduct.price} 
-                          onChange={(e) => setEditingProduct({ ...editingProduct, price: parseInt(e.target.value) })}
-                          className="w-full bg-brand-paper border border-brand-line px-3 py-2 text-sm rounded-xl focus:outline-none font-mono"
+                          type="text" 
+                          required
+                          value={editingProduct.title} 
+                          onChange={(e) => setEditingProduct({ ...editingProduct, title: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-2 text-xs rounded-xl focus:outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-sans text-brand-ink-soft mb-1">Stock</label>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">SKU Code</label>
+                        <input 
+                          type="text" 
+                          value={editingProduct.sku} 
+                          onChange={(e) => setEditingProduct({ ...editingProduct, sku: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-2 text-xs rounded-xl focus:outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Price (₹ INR)</label>
                         <input 
                           type="number" 
+                          required
+                          value={editingProduct.price / 100} 
+                          onChange={(e) => setEditingProduct({ ...editingProduct, price: Math.round(Number(e.target.value) * 100) })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-2 text-xs rounded-xl focus:outline-none font-mono font-bold text-brand-teal"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">MRP Size (₹ INR)</label>
+                        <input 
+                          type="number" 
+                          required
+                          value={editingProduct.mrp / 100} 
+                          onChange={(e) => setEditingProduct({ ...editingProduct, mrp: Math.round(Number(e.target.value) * 100) })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Inventory</label>
+                        <input 
+                          type="number" 
+                          required
                           value={editingProduct.inventory} 
-                          onChange={(e) => setEditingProduct({ ...editingProduct, inventory: parseInt(e.target.value) })}
-                          className="w-full bg-brand-paper border border-brand-line px-3 py-2 text-sm rounded-xl focus:outline-none font-mono"
+                          onChange={(e) => setEditingProduct({ ...editingProduct, inventory: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Primary Pillar</label>
+                        <select
+                          value={editingProduct.pillar || 'dining'}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, pillar: e.target.value as any })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                        >
+                          <option value="dining">Dining (Tableware)</option>
+                          <option value="lighting">Lighting (Lamps)</option>
+                          <option value="decor">Decor (Folk panels)</option>
+                          <option value="garden">Garden (Terracotta)</option>
+                          <option value="jewellery">Ethnic Jewellery</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Assign Artisan Source</label>
+                        <select
+                          value={editingProduct.artisanId}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, artisanId: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                        >
+                          <option value="">-- select maker --</option>
+                          {db.artisans.map(a => (
+                            <option key={a.id} value={a.id}>{a.name} ({a.region.split(',')[0]})</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-[#7a644f] mb-0.5">categoryPath (comma separated)</label>
+                        <input 
+                          type="text" 
+                          value={editingProduct.categoryPath?.join(', ') || ''} 
+                          onChange={(e) => setEditingProduct({ ...editingProduct, categoryPath: e.target.value.split(',').map(s => s.trim()) })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-[11px] rounded-xl focus:outline-none font-mono"
+                          placeholder="e.g. dining, ceramic-bowls"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-[#7a644f] mb-0.5">Materials (comma separated)</label>
+                        <input 
+                          type="text" 
+                          value={editingProduct.material?.join(', ') || ''} 
+                          onChange={(e) => setEditingProduct({ ...editingProduct, material: e.target.value.split(',').map(s => s.trim()) })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-[11px] rounded-xl focus:outline-none font-mono"
+                          placeholder="e.g. brass, iron"
                         />
                       </div>
                     </div>
 
                     <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Primary Image URL Resource</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingProduct.images?.[0]?.url || ''} 
+                        onChange={(e) => {
+                          const copy = [...(editingProduct.images || [])];
+                          if (copy[0]) {
+                            copy[0].url = e.target.value;
+                          } else {
+                            copy.push({ url: e.target.value, type: 'image' });
+                          }
+                          setEditingProduct({ ...editingProduct, images: copy });
+                        }}
+                        className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        placeholder="https://images.unsplash.com/promo-link..."
+                      />
+                    </div>
+
+                    <div>
                       <div className="flex justify-between items-center mb-1">
-                        <label className="text-xs font-sans text-brand-ink-soft">Description</label>
+                        <label className="text-[11px] font-sans text-brand-ink-soft">Description</label>
                         <button
                           type="button"
-                          onClick={() => handleAiDescriptionGenerate(editingProduct.id, editingProduct.title, editingProduct.artForm[0], editingProduct.material[0])}
-                          disabled={aiGeneratingId === editingProduct.id}
-                          className="bg-brand-clay/10 hover:bg-brand-clay hover:text-white text-brand-clay border border-brand-clay/20 text-[10px] px-2.5 py-1.5 rounded-lg font-sans transition-all flex items-center space-x-1"
+                          onClick={() => handleAiDescriptionGenerate(editingProduct.id || 'new', editingProduct.title, editingProduct.artForm?.[0], editingProduct.material?.[0])}
+                          disabled={aiGeneratingId === (editingProduct.id || 'new')}
+                          className="bg-brand-clay/10 hover:bg-brand-clay hover:text-white text-brand-clay border border-brand-clay/20 text-[10px] px-2.5 py-1 rounded-lg font-sans transition-all flex items-center space-x-1 cursor-pointer select-none"
                         >
-                          {aiGeneratingId === editingProduct.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-yellow-500 animate-pulse" />}
-                          <span>Auto-Rewrite Draft with AI</span>
+                          {aiGeneratingId === (editingProduct.id || 'new') ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-yellow-500 animate-pulse" />}
+                          <span>Generate Dynamic Script with AI</span>
                         </button>
                       </div>
                       <textarea 
                         value={editingProduct.description} 
-                        rows={4}
+                        required
+                        rows={3}
                         onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
                         className="w-full bg-brand-paper border border-brand-line px-3 py-2 text-xs rounded-xl focus:outline-none leading-relaxed font-sans"
                       />
@@ -546,15 +821,15 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
 
                     <button 
                       type="submit"
-                      className="w-full bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-sm py-2 px-4 rounded-xl font-sans transition-all shadow-md"
+                      className="w-full bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans transition-all shadow-md font-bold uppercase tracking-wider border-0 cursor-pointer select-none"
                     >
-                      Save Specifications
+                      Save & Propagate Changes
                     </button>
                   </form>
                 ) : (
                   <div className="h-44 flex flex-col items-center justify-center text-center">
-                    <Package className="w-8 h-8 text-brand-ink-soft/40 mb-2" />
-                    <p className="text-xs text-brand-ink-soft font-sans">Select any item in the inventory register to modify properties or trigger luxury copywriting rewrites.</p>
+                    <Package className="w-8 h-8 text-brand-ink-soft/45 mb-2 animate-bounce" />
+                    <p className="text-xs text-brand-ink-soft font-sans font-medium">Select any item in the inventory register to modify or click <b>Onboard New Product</b> to build custom listings.</p>
                   </div>
                 )}
               </div>
@@ -562,90 +837,183 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
           </div>
         )}
 
-        {/* 3. ARTISAN TAB */}
+        {/* 3. ARTISANS DIRECTORY (CRUD) */}
         {activeTab === 'artisans' && (
           <div className="space-y-6">
-            <h3 className="font-serif font-bold text-lg text-brand-ink">Artisan Directory</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-lg text-brand-ink">Artisan Partner Directory</h3>
+                <p className="text-xs text-brand-ink-soft">Onboard traditional regional crafts handlers and track generational authenticity stories dynamically.</p>
+              </div>
+              <button 
+                onClick={() => setEditingArtisan(initNewArtisan())}
+                className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans font-bold flex items-center justify-center space-x-1 border-0 cursor-pointer select-none"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Onboard New Artisan Partner</span>
+              </button>
+            </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-3 max-h-[400px] overflow-y-auto pr-2">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* List grid */}
+              <div className="lg:col-span-7 space-y-3 max-h-[550px] overflow-y-auto pr-2">
                 {db.artisans.map((a) => (
-                  <div key={a.id} className="bg-brand-paper border border-brand-line p-3 rounded-2xl flex items-center justify-between hover:border-brand-clay transition-all">
+                  <div key={a.id} className={`bg-brand-paper border p-3 rounded-2xl flex items-center justify-between hover:border-brand-clay transition-all ${editingArtisan?.id === a.id ? 'border-brand-clay shadow' : 'border-brand-line'}`}>
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-brand-paper-dark flex items-center justify-center font-serif font-bold text-brand-clay shadow-xs">
-                        {a.name.substring(0, 2)}
+                      <div className="w-12 h-12 rounded-full overflow-hidden border border-brand-line bg-brand-paper-dark flex items-center justify-center font-serif font-bold text-brand-clay text-lg shadow-inner">
+                        {a.portfolio?.[0]?.url ? (
+                          <img src={a.portfolio[0].url} alt={a.name} className="w-full h-full object-cover" />
+                        ) : (
+                          a.name.substring(0, 2).toUpperCase()
+                        )}
                       </div>
                       <div>
                         <h4 className="font-serif text-sm font-bold text-brand-ink">{a.name}</h4>
-                        <p className="text-xs text-brand-ink-soft">{a.region} | Crafts: {a.craftSpecialty.join(', ')}</p>
+                        <p className="text-[11px] text-brand-ink-soft font-mono">Region: {a.region} | Hand: {a.craftSpecialty?.join(', ')}</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => setEditingArtisan(a)}
-                      className="text-xs border border-brand-line hover:border-brand-clay text-brand-ink px-3 py-1.5 rounded-xl font-sans transition-all"
-                    >
-                      View Backstory
-                    </button>
+                    <div className="flex items-center space-x-1 pl-3 border-s border-brand-line">
+                      <button 
+                        onClick={() => setEditingArtisan(a)}
+                        className="text-xs border border-brand-line hover:border-brand-clay text-brand-ink bg-brand-paper px-2.5 py-1.5 rounded-xl transition-all font-sans cursor-pointer"
+                      >
+                        Edit Story
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteItem('artisans', a.id, setEditingArtisan)}
+                        className="text-xs border border-brand-line hover:bg-brand-clay hover:text-brand-paper text-brand-clay-deep p-1.5 rounded-xl transition-all cursor-pointer"
+                        title="Delete artisan profile"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Artisan Backstory Editor */}
-              <div className="bg-brand-paper-dark/30 border border-brand-line p-4 rounded-3xl">
+              <div className="lg:col-span-5 bg-brand-paper-dark/35 border border-brand-line p-5 rounded-3xl sticky top-4">
                 {editingArtisan ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-serif font-bold text-brand-ink">{editingArtisan.name} Story</h4>
-                      <button onClick={() => setEditingArtisan(null)} className="text-xs text-brand-ink-soft hover:text-brand-clay">Close</button>
+                  <form onSubmit={(e) => { e.preventDefault(); handleSaveItem('artisans', editingArtisan, setEditingArtisan); }} className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-brand-line">
+                      <div>
+                        <span className="text-[10px] text-brand-clay font-bold font-mono uppercase tracking-widest block">{editingArtisan.id ? 'EDIT PROFILE' : 'NEW ONBOARD'}</span>
+                        <h4 className="font-serif font-black text-brand-ink text-sm">{editingArtisan.name || 'Setup Artisan Partner'}</h4>
+                      </div>
+                      <button type="button" onClick={() => setEditingArtisan(null)} className="text-xs text-brand-ink-soft hover:text-brand-clay font-mono">Cancel x</button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Partner Name</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingArtisan.name} 
+                          onChange={(e) => setEditingArtisan({ ...editingArtisan, name: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Geographic Origin</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingArtisan.region} 
+                          onChange={(e) => setEditingArtisan({ ...editingArtisan, region: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                          placeholder="e.g. Bastar, Chhattisgarh"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-clay mb-0.5">Specialties (comma list)</label>
+                        <input 
+                          type="text" 
+                          value={editingArtisan.craftSpecialty?.join(', ') || ''} 
+                          onChange={(e) => setEditingArtisan({ ...editingArtisan, craftSpecialty: e.target.value.split(',').map(s => s.trim()) })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-clay mb-0.5">Primary Raw Materials</label>
+                        <input 
+                          type="text" 
+                          value={editingArtisan.materials?.join(', ') || ''} 
+                          onChange={(e) => setEditingArtisan({ ...editingArtisan, materials: e.target.value.split(',').map(s => s.trim()) })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        />
+                      </div>
                     </div>
 
                     <div>
-                      <p className="text-xs font-sans text-brand-ink-soft font-medium">Core Region Bio</p>
-                      <p className="text-xs text-brand-ink mt-1 bg-brand-paper p-2.5 rounded-xl border border-brand-line/60 leading-relaxed">{editingArtisan.bio}</p>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Profile Photo/Portfolio URL</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingArtisan.portfolio?.[0]?.url || ''} 
+                        onChange={(e) => {
+                          const copy = [...(editingArtisan.portfolio || [])];
+                          if (copy[0]) {
+                            copy[0].url = e.target.value;
+                          } else {
+                            copy.push({ url: e.target.value, type: 'image' });
+                          }
+                          setEditingArtisan({ ...editingArtisan, portfolio: copy });
+                        }}
+                        className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        placeholder="https://images.unsplash.com/photo-..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Short Biography Description</label>
+                      <textarea 
+                        value={editingArtisan.bio} 
+                        rows={2}
+                        required
+                        onChange={(e) => setEditingArtisan({ ...editingArtisan, bio: e.target.value })}
+                        className="w-full bg-brand-paper border border-brand-line p-2.5 text-xs rounded-xl focus:outline-none leading-relaxed font-sans"
+                        placeholder="Veteran weaver with over 30 years experience in royal weaves..."
+                      />
                     </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs font-sans font-medium text-brand-ink-soft">Artistic Backstory</span>
+                        <label className="text-[11px] font-sans text-brand-ink-soft">Generational Heritage Story (Longform)</label>
                         <button
-                          onClick={() => handleAiArtisanStoryGenerate(editingArtisan.id, editingArtisan.name, editingArtisan.region, editingArtisan.craftSpecialty)}
-                          disabled={aiGeneratingId === editingArtisan.id}
-                          className="bg-brand-clay/10 hover:bg-brand-clay hover:text-white text-brand-clay border border-brand-clay/20 text-[10px] px-2.5 py-1.5 rounded-lg transition-all flex items-center space-x-1"
+                          type="button"
+                          onClick={() => handleAiArtisanStoryGenerate(editingArtisan.id || 'new_art', editingArtisan.name, editingArtisan.region, editingArtisan.craftSpecialty)}
+                          disabled={aiGeneratingId === (editingArtisan.id || 'new_art')}
+                          className="bg-brand-clay/15 hover:bg-brand-clay hover:text-white text-brand-clay border border-brand-clay/20 text-[10px] px-2.5 py-1 rounded-lg font-sans transition-all flex items-center space-x-1 cursor-pointer select-none"
                         >
-                          {aiGeneratingId === editingArtisan.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-yellow-500" />}
-                          <span>Generate Story with AI</span>
+                          {aiGeneratingId === (editingArtisan.id || 'new_art') ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-yellow-500 animate-pulse" />}
+                          <span>Draft Heritage Story with AI</span>
                         </button>
                       </div>
-                      <textarea
-                        value={editingArtisan.story || ''}
-                        rows={6}
+                      <textarea 
+                        value={editingArtisan.story || ''} 
+                        rows={4}
+                        required
                         onChange={(e) => setEditingArtisan({ ...editingArtisan, story: e.target.value })}
-                        className="w-full bg-brand-paper text-brand-ink placeholder:text-brand-ink-soft/40 p-2.5 text-xs rounded-xl border border-brand-line focus:outline-none leading-relaxed font-sans"
-                        placeholder="Write or hit generate to draft historical heritage copy..."
+                        className="w-full bg-brand-paper border border-brand-line p-2.5 text-xs rounded-xl focus:outline-none leading-relaxed font-sans"
+                        placeholder="Paste or run storyteller script above..."
                       />
                     </div>
 
-                    <button
-                      onClick={() => {
-                        fetch(`/api/db/artisans/${editingArtisan.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(editingArtisan)
-                        }).then(() => {
-                          onRefreshDb();
-                          setEditingArtisan(null);
-                          alert('Artisan story updated.');
-                        });
-                      }}
-                      className="w-full bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans transition-all"
+                    <button 
+                      type="submit"
+                      className="w-full bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans transition-all shadow-md font-bold uppercase tracking-wider border-0 cursor-pointer select-none"
                     >
-                      Save Backstory Draft
+                      Save Partner Configuration
                     </button>
-                  </div>
+                  </form>
                 ) : (
                   <div className="h-44 flex flex-col items-center justify-center text-center">
-                    <Users className="w-8 h-8 text-brand-ink-soft/40 mb-2" />
-                    <p className="text-xs text-brand-ink-soft font-sans font-medium">Select an artisan, then configure historical heritage backlinks or invoke our storyteller writer.</p>
+                    <Users className="w-8 h-8 text-brand-ink-soft/45 mb-2 animate-pulse" />
+                    <p className="text-xs text-brand-ink-soft font-sans font-medium">Select an artisan, then configure historical heritage stories or invoke our storyteller writer.</p>
                   </div>
                 )}
               </div>
@@ -653,9 +1021,9 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
           </div>
         )}
 
-        {/* 4. AI OUTREACH HUMAN-IN-THE-LOOP CRM (USP Phase 5) */}
+        {/* 4. AI OUTREACH FINDER */}
         {activeTab === 'outreach' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-in fade-in duration-300">
             <div className="border border-brand-line bg-brand-paper p-4 rounded-3xl">
               <h3 className="font-serif font-bold text-base text-brand-ink flex items-center">
                 <Compass className="w-5 h-5 text-brand-clay mr-1.5 animate-spin" /> 
@@ -676,7 +1044,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                 <button
                   onClick={handleFinderAgentSleuth}
                   disabled={isFindingLeads}
-                  className="bg-brand-clay hover:bg-brand-clay-deep disabled:opacity-40 text-brand-paper px-4 py-2 rounded-xl text-xs font-sans font-medium select-none cursor-pointer flex items-center space-x-1"
+                  className="bg-brand-clay hover:bg-brand-clay-deep disabled:opacity-40 text-brand-paper px-4 py-2 rounded-xl text-xs font-sans font-medium select-none cursor-pointer border-0 flex items-center space-x-1"
                 >
                   {isFindingLeads ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                   <span>Probe Artisan Leads</span>
@@ -686,7 +1054,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
 
             {/* Pipeline list */}
             <div className="space-y-4">
-              <h4 className="font-serif font-extrabold text-sm text-brand-ink uppercase tracking-wider">Active Outreach Ledger</h4>
+              <h4 className="font-serif font-extrabold text-sm text-brand-ink uppercase tracking-wider">Active Outreach Catalog</h4>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {outreachLeads.map((lead) => (
@@ -707,7 +1075,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                       
                       <div className="mt-3 bg-brand-paper-dark/30 border border-brand-line/60 p-2.5 rounded-xl">
                         <span className="text-[10px] text-brand-clay font-bold tracking-wider uppercase flex items-center">
-                          <Mail className="w-3 h-3 mr-1" /> Gemini Draft Letter (Human Read Only)
+                          <Mail className="w-3 h-3 mr-1" /> Gemini Draft Letter (Human Verified Approving)
                         </span>
                         <pre className="text-[10px] text-brand-ink mt-1.5 whitespace-pre-wrap font-sans max-h-24 overflow-y-auto leading-relaxed border-t border-brand-line pt-2">
                           {lead.emailDraft}
@@ -717,7 +1085,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                       {lead.meetingLink && (
                         <div className="mt-2 bg-indigo-50 border border-indigo-100 p-2 rounded-xl flex items-center space-x-2 text-[10px] text-indigo-900 font-medium">
                           <Calendar className="w-3.5 h-3.5" />
-                          <span>Scheduler: <a href={lead.meetingLink} target="_blank" rel="noopener noreferrer" className="underline font-bold">Google Meet Conference Link</a></span>
+                          <span>Scheduler: <a href={lead.meetingLink} target="_blank" rel="noopener noreferrer" className="underline font-bold text-indigo-700">Google Meet Conference Link</a></span>
                         </div>
                       )}
                     </div>
@@ -726,7 +1094,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                       {lead.status === 'found' && (
                         <button
                           onClick={() => executeOutreachAction(lead.id, 'contacted')}
-                          className="bg-brand-teal text-brand-paper text-[10px] px-3 py-1.5 rounded-lg font-sans font-medium hover:bg-brand-teal/90 transition-all select-none cursor-pointer"
+                          className="bg-brand-teal text-brand-paper text-[10px] px-3 py-1.5 rounded-lg font-sans font-medium hover:bg-brand-teal/90 transition-all select-none border-0 cursor-pointer"
                         >
                           ✉️ Approve & Send Email
                         </button>
@@ -734,7 +1102,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                       {lead.status === 'contacted' && (
                         <button
                           onClick={() => executeOutreachAction(lead.id, 'meeting_scheduled')}
-                          className="bg-indigo-600 text-brand-paper text-[10px] px-3 py-1.5 rounded-lg font-sans font-medium hover:bg-indigo-700 transition-all select-none cursor-pointer"
+                          className="bg-indigo-600 text-brand-paper text-[10px] px-3 py-1.5 rounded-lg font-sans font-medium hover:bg-indigo-700 transition-all select-none border-0 cursor-pointer"
                         >
                           📆 Schedule Meet Call
                         </button>
@@ -742,14 +1110,14 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                       {lead.status === 'meeting_scheduled' && (
                         <button
                           onClick={() => executeOutreachAction(lead.id, 'onboarded')}
-                          className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-[10px] px-3 py-1.5 rounded-lg font-sans font-medium transition-all select-none cursor-pointer"
+                          className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-[10px] px-3 py-1.5 rounded-lg font-sans font-medium transition-all select-none border-0 cursor-pointer"
                         >
-                          🎉 Complete Onboard (+₹300 Accrued Accrual)
+                          🎉 Complete Onboard (+₹300 Credit Accrued)
                         </button>
                       )}
                       {lead.status === 'onboarded' && (
                         <span className="text-[10px] text-green-700 font-bold flex items-center">
-                          <Check className="w-4 h-4 mr-0.5" /> Account fully configured in registry!
+                          <Check className="w-4 h-4 mr-0.5 text-green-700" /> Account fully configured in registry!
                         </span>
                       )}
                     </div>
@@ -760,194 +1128,866 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
           </div>
         )}
 
-        {/* 5. BRAND LOGO CONFIG TAB */}
+        {/* 5. BRAND STYLE CONFIG */}
         {activeTab === 'logo' && (
-          <div className="space-y-6">
-            <div className="bg-brand-paper border border-brand-line p-4 rounded-3xl">
-              <h3 className="font-serif font-bold text-base text-brand-ink">Dynamic Brand & Logo Editor</h3>
-              <p className="text-xs text-brand-ink-soft">Make real-time updates to your site branding. Update the logo instantly across all headers and components.</p>
-              
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-sans text-brand-ink-soft mb-1">Company Brand Name</label>
-                    <input 
-                      type="text" 
-                      value={logoName}
-                      onChange={(e) => setLogoName(e.target.value)}
-                      className="w-full bg-brand-paper border border-brand-line px-3.5 py-2 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-clay"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-sans text-brand-ink-soft mb-1">Accent Theme Tint</label>
-                    <div className="flex space-x-2">
-                      {[
-                        { code: '#C4683B', label: 'Clay Terracotta' },
-                        { code: '#1F5A58', label: 'Earthy Pine' },
-                        { code: '#2A211B', label: 'Ink Charcoal' }
-                      ].map((cp) => (
-                        <button 
-                          key={cp.code}
-                          type="button" 
-                          onClick={() => setLogoColor(cp.code)}
-                          className={`flex-1 py-1.5 px-2.5 rounded-xl border text-[11px] font-sans transition-all flex items-center justify-center space-x-1.5 cursor-pointer select-none ${
-                            logoColor === cp.code ? 'bg-brand-ink text-brand-paper border-brand-ink' : 'bg-brand-paper border-brand-line hover:bg-brand-paper-dark'
-                          }`}
-                        >
-                          <span style={{ backgroundColor: cp.code }} className="w-3 h-3 rounded-full border border-white" />
-                          <span>{cp.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                   <div>
-                    <label className="block text-xs font-sans text-brand-ink-soft mb-1">Select and Upload Brand Logo File</label>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === 'string') {
-                              setLogoInput(reader.result);
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="w-full bg-brand-paper text-brand-ink-soft text-xs border border-dashed border-brand-line p-3 rounded-xl cursor-pointer hover:bg-brand-paper-dark transition-all focus:outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-sans text-brand-ink-soft mb-1">OR Paste Brand Logo (Image Link / Base64 Data)</label>
-                    <textarea 
-                      value={logoInput}
-                      onChange={(e) => setLogoInput(e.target.value)}
-                      placeholder="e.g. https://images.unsplash.com/... or paste image Base64 data schema"
-                      className="w-full bg-brand-paper border border-brand-line p-2.5 text-xs rounded-xl focus:outline-none font-mono"
-                      rows={2}
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleApplyLogoBranding}
-                    className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper py-2 px-4 rounded-xl text-sm font-sans font-medium transition-all shadow-md cursor-pointer select-none"
-                  >
-                    Apply Brand Changes Real-Time
-                  </button>
+          <div className="bg-brand-paper border border-brand-line p-6 rounded-3xl animate-in fade-in duration-300">
+            <h3 className="font-serif font-bold text-base text-brand-ink">Dynamic Brand & Logo Editor</h3>
+            <p className="text-xs text-brand-ink-soft">Make real-time updates to your site branding. Update the logo instantly across all headers and components.</p>
+            
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-sans text-brand-ink-soft mb-1">Company Brand Name</label>
+                  <input 
+                    type="text" 
+                    value={logoName}
+                    onChange={(e) => setLogoName(e.target.value)}
+                    className="w-full bg-brand-paper border border-brand-line px-3.5 py-2 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-clay"
+                  />
                 </div>
 
-                {/* Live Preview Card */}
-                <div className="bg-brand-paper-dark/40 border border-brand-line p-6 rounded-3xl flex flex-col items-center justify-center text-center">
-                  <span className="text-[10px] text-brand-ink-soft/60 uppercase tracking-widest font-mono">Real-Time Header Preview</span>
-                  
-                  <div className="mt-4 bg-brand-paper border border-brand-line px-6 py-4 rounded-2xl shadow-sm flex items-center justify-between w-full max-w-sm">
-                    {/* Brand Logo Rendering */}
-                    <div className="flex items-center space-x-2">
-                      {logoInput ? (
-                        <img src={logoInput} alt="Uploaded logo" className="max-h-8 object-contain" />
-                      ) : (
-                        <div className="flex flex-col items-center select-none">
-                          <span className="font-serif font-black text-lg italic tracking-tight text-brand-ink">{logoName}</span>
-                          <div className="h-1.5 w-12 flex space-x-0.5 rounded-full overflow-hidden mt-0.5">
-                            <span className="bg-brand-clay flex-1" />
-                            <span className="bg-amber-400 flex-1" />
-                            <span className="bg-brand-sage flex-1" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <span style={{ color: logoColor }} className="text-xs font-serif font-bold italic">Authentic India</span>
+                <div>
+                  <label className="block text-xs font-sans text-brand-ink-soft mb-1">Accent Theme Tint</label>
+                  <div className="flex space-x-2">
+                    {[
+                      { code: '#C4683B', label: 'Clay Terracotta' },
+                      { code: '#1F5A58', label: 'Earthy Pine' },
+                      { code: '#2A211B', label: 'Ink Charcoal' }
+                    ].map((cp) => (
+                      <button 
+                        key={cp.code}
+                        type="button" 
+                        onClick={() => setLogoColor(cp.code)}
+                        className={`flex-1 py-1.5 px-2.5 rounded-xl border text-[11px] font-sans transition-all flex items-center justify-center space-x-1.5 cursor-pointer select-none ${
+                          logoColor === cp.code ? 'bg-brand-ink text-brand-paper border-brand-ink font-bold' : 'bg-brand-paper border-brand-line hover:bg-brand-paper-dark'
+                        }`}
+                      >
+                        <span style={{ backgroundColor: cp.code }} className="w-3 h-3 rounded-full border border-white" />
+                        <span>{cp.label}</span>
+                      </button>
+                    ))}
                   </div>
-                  
-                  <p className="text-[11px] text-brand-ink-soft/80 mt-4 leading-relaxed max-w-xs font-sans">
-                    Updating brand configurations automatically synchronizes mega-menus, loader screens and accent button coloring schemas immediately.
-                  </p>
+                </div>
+
+                 <div>
+                  <label className="block text-xs font-sans text-brand-ink-soft mb-1">Select and Upload Brand Logo File</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          if (typeof reader.result === 'string') {
+                            setLogoInput(reader.result);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full bg-brand-paper text-brand-ink-soft text-xs border border-dashed border-brand-line p-3 rounded-xl cursor-pointer hover:bg-brand-paper-dark transition-all focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-sans text-brand-ink-soft mb-1">OR Paste Brand Logo (Image Link / Base64 Data)</label>
+                  <textarea 
+                    value={logoInput}
+                    onChange={(e) => setLogoInput(e.target.value)}
+                    placeholder="e.g. https://images.unsplash.com/... or paste image Base64 data schema"
+                    className="w-full bg-brand-paper border border-brand-line p-2.5 text-xs rounded-xl focus:outline-none font-mono"
+                    rows={2}
+                  />
+                </div>
+
+                <button
+                  onClick={handleApplyLogoBranding}
+                  className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper py-2 px-5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md cursor-pointer border-0 select-none"
+                >
+                  Apply Brand Changes Real-Time
+                </button>
+              </div>
+
+              {/* Live Preview Card */}
+              <div className="bg-brand-paper-dark/40 border border-brand-line p-6 rounded-3xl flex flex-col items-center justify-center text-center">
+                <span className="text-[10px] text-brand-ink-soft/60 uppercase tracking-widest font-mono">Real-Time Header Preview</span>
+                
+                <div className="mt-4 bg-brand-paper border border-brand-line px-6 py-4 rounded-2xl shadow-sm flex items-center justify-between w-full max-w-sm">
+                  {/* Brand Logo Rendering */}
+                  <div className="flex items-center space-x-2">
+                    {logoInput ? (
+                      <img src={logoInput} alt="Uploaded logo" className="max-h-8 object-contain" />
+                    ) : (
+                      <div className="flex flex-col items-center select-none">
+                        <span className="font-serif font-black text-lg italic tracking-tight text-brand-ink">{logoName}</span>
+                        <div className="h-1.5 w-12 flex space-x-0.5 rounded-full overflow-hidden mt-0.5">
+                          <span className="bg-brand-clay flex-1" />
+                          <span className="bg-amber-400 flex-1" />
+                          <span className="bg-brand-sage flex-1" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <span style={{ color: logoColor }} className="text-xs font-serif font-bold italic">Authentic India</span>
+                </div>
+                
+                <p className="text-[11px] text-brand-ink-soft/80 mt-4 leading-relaxed max-w-xs font-sans">
+                  Updating brand configurations automatically synchronizes mega-menus, loader screens and accent button coloring schemas immediately.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 6. CAMPAIGNS TAB (CRUD) */}
+        {activeTab === 'campaigns' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-lg text-[#1F5A58]">Welfare Campaigns Partnership</h3>
+                <p className="text-xs text-brand-ink-soft">Post humanitarian disaster assistance relief funds and plan verified disbursement schedules.</p>
+              </div>
+              <button 
+                onClick={() => setEditingCampaign(initNewCampaign())}
+                className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans font-bold flex items-center justify-center space-x-1 border-0 cursor-pointer select-none"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Onboard New Campaign</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* Left Column Campaign listing */}
+              <div className="lg:col-span-7 space-y-4 max-h-[550px] overflow-y-auto pr-2">
+                {db.campaigns.map((c) => (
+                  <div key={c.id} className="bg-brand-paper border border-brand-line rounded-2xl p-4 shadow-xs relative flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-serif font-black text-brand-ink text-base">{c.title}</h4>
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => setEditingCampaign(c)}
+                            className="text-xs px-2.5 py-1 border border-brand-line hover:border-brand-clay bg-brand-paper text-brand-ink rounded-lg cursor-pointer"
+                          >
+                            Edit Properties
+                          </button>
+                          <button
+                            onClick={() => handleDeleteItem('campaigns', c.id, setEditingCampaign)}
+                            className="p-1 px-1.5 border border-brand-line hover:bg-brand-clay-deep hover:text-brand-paper rounded-lg text-brand-clay-deep cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-2 text-xs text-brand-ink-soft leading-relaxed">
+                        <p>{c.beneficiarySummary}</p>
+                        <p className="font-bold text-brand-ink mt-2">Goal Target: <b>₹{(c.goalAmount/100).toLocaleString('en-IN')}</b> | Raised : <b>₹{(c.raisedAmount/100).toLocaleString('en-IN')}</b></p>
+                      </div>
+                      
+                      <div className="mt-3 bg-brand-paper-dark/40 p-3 rounded-xl border border-brand-line/60">
+                        <span className="text-[10px] text-brand-clay font-black uppercase tracking-wider block">Disbursement Milestones Ledger</span>
+                        <div className="mt-1 space-y-2">
+                          {c.disbursementMilestones && c.disbursementMilestones.length > 0 ? (
+                            c.disbursementMilestones.map((m, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-[11px] border-b border-brand-line/45 pb-1.5 last:border-0 last:pb-0">
+                                <div>
+                                  <p className="font-medium text-brand-ink">{m.stage}</p>
+                                  <p className="text-[9px] text-brand-ink-soft">{m.releasedAt ? `Released on ${new Date(m.releasedAt).toLocaleDateString()}` : 'Planned'}</p>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-mono leading-none ${m.status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                                  {m.status === 'verified' ? `Verified ₹${m.amount/100}` : `Planned ₹${m.amount/100}`}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-[10px] italic text-brand-ink-soft">No disburse schedules mapped yet.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Add Custom Milestone inside dynamic card */}
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const fd = new FormData(e.currentTarget);
+                      const stage = fd.get('stage') as string;
+                      const amount = parseInt(fd.get('amount') as string) * 100;
+                      if (!stage || !amount) return;
+
+                      const updatedMilestones = [...(c.disbursementMilestones || []), { stage, amount, status: 'planned' }];
+                      const updatedPayload = { ...c, disbursementMilestones: updatedMilestones };
+
+                      fetch(`/api/db/campaigns/${c.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updatedPayload)
+                      }).then(() => {
+                        onRefreshDb();
+                        alert('Disbursement milestone uploaded schedule successfully.');
+                        e.currentTarget.reset();
+                      });
+                    }} className="mt-4 pt-3 border-t border-brand-line/50 grid grid-cols-2 gap-2">
+                      <input type="text" name="stage" placeholder="New planned stage description" className="bg-brand-paper border border-brand-line px-2 py-1 text-xs rounded-lg" required />
+                      <div className="flex space-x-1">
+                        <input type="number" name="amount" placeholder="₹ Amount" className="bg-brand-paper border border-brand-line px-2 py-1 text-xs rounded-lg w-20 font-mono" required />
+                        <button type="submit" className="bg-brand-clay text-brand-paper text-[10px] px-2.5 py-1 rounded-lg border-0 cursor-pointer">Post</button>
+                      </div>
+                    </form>
+                  </div>
+                ))}
+              </div>
+
+              {/* Right Column edit Campaign properties */}
+              <div className="lg:col-span-5 bg-brand-paper-dark/35 border border-brand-line p-5 rounded-3xl sticky top-4">
+                {editingCampaign ? (
+                  <form onSubmit={(e) => { e.preventDefault(); handleSaveItem('campaigns', editingCampaign, setEditingCampaign); }} className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-brand-line">
+                      <h4 className="font-serif font-black text-brand-ink text-sm">{editingCampaign.id ? 'Edit Campaign Info' : 'Publish Welfare Program'}</h4>
+                      <button type="button" onClick={() => setEditingCampaign(null)} className="text-xs text-brand-ink-soft hover:text-brand-clay font-mono">Cancel x</button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Campaign Title</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingCampaign.title} 
+                        onChange={(e) => setEditingCampaign({ ...editingCampaign, title: e.target.value })}
+                        className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Target Category</label>
+                        <select
+                          value={editingCampaign.category || 'artisan_welfare'}
+                          onChange={(e) => setEditingCampaign({ ...editingCampaign, category: e.target.value as any })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                        >
+                          <option value="artisan_welfare">Artisan Welfare (Kits/Shields)</option>
+                          <option value="medical">Medical (Health Camps)</option>
+                          <option value="education">Education (Scholarships)</option>
+                          <option value="disaster_relief">Disaster Relief</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Goal Budget (₹ INR)</label>
+                        <input 
+                          type="number" 
+                          required
+                          value={editingCampaign.goalAmount / 100} 
+                          onChange={(e) => setEditingCampaign({ ...editingCampaign, goalAmount: Math.round(Number(e.target.value) * 100) })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Cover Image Header URL</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingCampaign.cover?.url || ''} 
+                        onChange={(e) => setEditingCampaign({ ...editingCampaign, cover: { url: e.target.value, type: 'image' } })}
+                        className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        placeholder="https://images.unsplash.com/photo-..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Beneficiary Summary Statement</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingCampaign.beneficiarySummary} 
+                        onChange={(e) => setEditingCampaign({ ...editingCampaign, beneficiarySummary: e.target.value })}
+                        className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Long-Form Story & Motive</label>
+                      <textarea 
+                        value={editingCampaign.story || ''} 
+                        rows={4}
+                        required
+                        onChange={(e) => setEditingCampaign({ ...editingCampaign, story: e.target.value })}
+                        className="w-full bg-brand-paper border border-brand-line p-2.5 text-xs rounded-xl focus:outline-none leading-relaxed font-sans"
+                        placeholder="Describe the target impact, logistics and verified NGOs involved..."
+                      />
+                    </div>
+
+                    <button 
+                      type="submit"
+                      className="w-full bg-[#1F5A58] hover:bg-[#15413f] text-brand-paper text-xs py-2 px-4 rounded-xl font-sans font-bold transition-all border-0 cursor-pointer select-none"
+                    >
+                      Publish/Update Campaign
+                    </button>
+                  </form>
+                ) : (
+                  <div className="h-44 flex flex-col items-center justify-center text-center">
+                    <Megaphone className="w-8 h-8 text-[#1F5A58]/45 mb-2 animate-bounce" />
+                    <p className="text-xs text-brand-ink-soft font-sans font-medium">Select a campaign or click Onboard New Campaign to set up dynamic aid panels.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 7. LOOKBOOKS TAB (CRUD) */}
+        {activeTab === 'lookbooks' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-lg text-brand-clay">Dynamic Editorial Lookbooks</h3>
+                <p className="text-xs text-brand-ink-soft">Design seasonal lookbooks, tagging specific products to build "Shop the Look" editorial modules.</p>
+              </div>
+              <button 
+                onClick={() => setEditingLookbook(initNewLookbook())}
+                className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans font-bold flex items-center justify-center space-x-1 border-0 cursor-pointer select-none"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Publish New Lookbook</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* List left side */}
+              <div className="lg:col-span-7 space-y-3 max-h-[550px] overflow-y-auto pr-2">
+                {db.lookbooks.map((lb) => (
+                  <div key={lb.id} className={`bg-brand-paper border p-4 rounded-2xl flex items-center justify-between hover:border-brand-clay transition-all ${editingLookbook?.id === lb.id ? 'border-brand-clay shadow' : 'border-brand-line'}`}>
+                    <div>
+                      <h4 className="font-serif text-sm font-bold text-brand-ink">{lb.title}</h4>
+                      <p className="text-xs text-brand-ink-soft italic leading-normal mt-1 max-w-md">"{lb.theme}"</p>
+                      <div className="mt-2 flex items-center space-x-2 text-[10px] font-mono text-brand-clay font-bold">
+                        <span>Trend Score: {lb.trendScore || 90}%</span>
+                        <span>•</span>
+                        <span>Linked Products: {lb.productIds?.length || 0} items</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1 pl-3 border-s border-brand-line">
+                      <button 
+                        onClick={() => setEditingLookbook(lb)}
+                        className="text-xs border border-brand-line hover:border-brand-clay text-brand-ink bg-brand-paper px-2.5 py-1.5 rounded-xl cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteItem('lookbooks', lb.id, setEditingLookbook)}
+                        className="border border-brand-line hover:bg-brand-clay-deep hover:text-brand-paper text-brand-clay-deep p-1.5 rounded-xl cursor-pointer"
+                        title="Delete lookbook"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Edit side */}
+              <div className="lg:col-span-5 bg-brand-paper-dark/35 border border-brand-line p-5 rounded-3xl sticky top-4">
+                {editingLookbook ? (
+                  <form onSubmit={(e) => { e.preventDefault(); handleSaveItem('lookbooks', editingLookbook, setEditingLookbook); }} className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-brand-line">
+                      <h4 className="font-serif font-black text-brand-ink text-sm">{editingLookbook.id ? 'Edit Lookbook Theme' : 'Design Seasonal Lookbook'}</h4>
+                      <button type="button" onClick={() => setEditingLookbook(null)} className="text-xs text-brand-ink-soft hover:text-brand-clay font-mono">Cancel x</button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Lookbook Title</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingLookbook.title} 
+                        onChange={(e) => setEditingLookbook({ ...editingLookbook, title: e.target.value })}
+                        className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Aesthetic Theme Synopsis</label>
+                      <textarea 
+                        required
+                        value={editingLookbook.theme} 
+                        rows={3}
+                        onChange={(e) => setEditingLookbook({ ...editingLookbook, theme: e.target.value })}
+                        className="w-full bg-brand-paper border border-brand-line p-2.5 text-xs rounded-xl focus:outline-none leading-relaxed font-sans"
+                        placeholder="e.g. Earthy minimal tones pairing raw slate clay dining servers with traditional brass lattice lights..."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Trend Score (0-100)</label>
+                        <input 
+                          type="number" 
+                          required
+                          min="1"
+                          max="100"
+                          value={editingLookbook.trendScore} 
+                          onChange={(e) => setEditingLookbook({ ...editingLookbook, trendScore: parseInt(e.target.value) || 90 })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">3D Viewer GLB link (optional)</label>
+                        <input 
+                          type="text" 
+                          value={editingLookbook.heroModel3dUrl} 
+                          onChange={(e) => setEditingLookbook({ ...editingLookbook, heroModel3dUrl: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono text-[10px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Tagged Product ID associations (Checkboxes / Select options toggle)</label>
+                      <div className="max-h-40 overflow-y-auto bg-brand-paper border border-brand-line p-2.5 rounded-xl space-y-2">
+                        {db.products.map(p => {
+                          const isChecked = editingLookbook.productIds?.includes(p.id);
+                          return (
+                            <label key={p.id} className="flex items-center space-x-2 text-xs text-brand-ink cursor-pointer select-none">
+                              <input 
+                                type="checkbox" 
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  let currentIds = editingLookbook.productIds ? [...editingLookbook.productIds] : [];
+                                  if (e.target.checked) {
+                                    if (!currentIds.includes(p.id)) currentIds.push(p.id);
+                                  } else {
+                                    currentIds = currentIds.filter(id => id !== p.id);
+                                  }
+                                  setEditingLookbook({ ...editingLookbook, productIds: currentIds });
+                                }}
+                                className="rounded text-brand-clay focus:ring-brand-clay"
+                              />
+                              <span>{p.title} <span className="text-[10px] text-brand-ink-soft font-mono">({p.id})</span></span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit"
+                      className="w-full bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans font-bold border-0 cursor-pointer select-none"
+                    >
+                      Save Lookbook Setup
+                    </button>
+                  </form>
+                ) : (
+                  <div className="h-44 flex flex-col items-center justify-center text-center">
+                    <Compass className="w-8 h-8 text-brand-clay/45 mb-2 animate-spin" />
+                    <p className="text-xs text-brand-ink-soft font-sans font-medium">Select a lookbook or click Publish New Lookbook to design dynamic styled editorial frames.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 8. PROMO COUPONS TAB (CRUD) */}
+        {activeTab === 'coupons' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-lg text-brand-teal">Promo Coupons & Discounts</h3>
+                <p className="text-xs text-brand-ink-soft">Create percentages or fixed-rupees promotional discount vouchers that apply on checkouts instantly.</p>
+              </div>
+              <button 
+                onClick={() => setEditingCoupon(initNewCoupon())}
+                className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs py-2 px-4 rounded-xl font-sans font-bold flex items-center justify-center space-x-1 border-0 cursor-pointer select-none"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create New Coupon</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Side listing */}
+              <div className="lg:col-span-7 space-y-3 max-h-[550px] overflow-y-auto pr-2 font-sans text-xs">
+                {db.coupons.map((c) => (
+                  <div key={c.id} className={`bg-brand-paper border p-4 rounded-2xl flex items-center justify-between hover:border-brand-clay transition-all ${editingCoupon?.id === c.id ? 'border-brand-clay shadow' : 'border-brand-line'}`}>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono font-bold text-sm uppercase bg-brand-teal/10 text-brand-teal px-2 py-0.5 rounded border border-brand-teal/20 tracking-wider">
+                          {c.code}
+                        </span>
+                        <span className={`h-2.5 w-2.5 rounded-full ${c.isActive ? 'bg-green-600' : 'bg-stone-400'}`} />
+                      </div>
+                      <p className="text-xs text-brand-ink mt-2">
+                        Benefit: <b>{c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value/100} Fixed Coupon`}</b>
+                      </p>
+                      <p className="text-[11px] text-brand-ink-soft">
+                        Min spend: ₹{(c.minOrder ? c.minOrder/100 : 0)} | Used limits recorded: {c.usedCount} times applied
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-1 pl-3 border-s border-brand-line">
+                      <button 
+                        onClick={() => setEditingCoupon(c)}
+                        className="text-xs border border-brand-line hover:border-brand-clay text-brand-ink bg-brand-paper px-2.5 py-1.5 rounded-xl cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteItem('coupons', c.id, setEditingCoupon)}
+                        className="border border-brand-line hover:bg-brand-clay-deep hover:text-brand-paper text-brand-clay-deep p-1.5 rounded-xl cursor-pointer"
+                        title="Delete coupon"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Right Side Editing Form */}
+              <div className="lg:col-span-5 bg-brand-paper-dark/35 border border-brand-line p-5 rounded-3xl sticky top-4">
+                {editingCoupon ? (
+                  <form onSubmit={(e) => { e.preventDefault(); handleSaveItem('coupons', editingCoupon, setEditingCoupon); }} className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-brand-line">
+                      <h4 className="font-serif font-black text-brand-ink text-sm">{editingCoupon.id ? 'Edit Coupon Parameters' : 'Deploy Promo Code'}</h4>
+                      <button type="button" onClick={() => setEditingCoupon(null)} className="text-xs text-brand-ink-soft hover:text-brand-clay font-mono">Cancel x</button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1 font-mono">COUPON CODE (UPPERCASE)</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingCoupon.code} 
+                          onChange={(e) => setEditingCoupon({ ...editingCoupon, code: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono uppercase tracking-wider font-bold"
+                          placeholder="e.g. MONSOON10"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Discount Type</label>
+                        <select
+                          value={editingCoupon.type || 'percent'}
+                          onChange={(e) => setEditingCoupon({ ...editingCoupon, type: e.target.value as any })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none"
+                        >
+                          <option value="percent">Percentage % Off</option>
+                          <option value="flat">Flat ₹ (INR) Amount Off</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">
+                          {editingCoupon.type === 'percent' ? 'Discount Value (% Off)' : 'Discount Value (₹ INR)'}
+                        </label>
+                        <input 
+                          type="number" 
+                          required
+                          value={editingCoupon.type === 'percent' ? editingCoupon.value : (editingCoupon.value / 100)} 
+                          onChange={(e) => {
+                            const inputVal = Number(e.target.value);
+                            setEditingCoupon({ 
+                              ...editingCoupon, 
+                              value: editingCoupon.type === 'percent' ? inputVal : Math.round(inputVal * 100) 
+                            });
+                          }}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Min Order Requirement (₹ INR)</label>
+                        <input 
+                          type="number" 
+                          required
+                          value={(editingCoupon.minOrder || 0) / 100} 
+                          onChange={(e) => setEditingCoupon({ ...editingCoupon, minOrder: Math.round(Number(e.target.value) * 100) })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Starts At Timestamp</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingCoupon.startsAt || ''} 
+                          onChange={(e) => setEditingCoupon({ ...editingCoupon, startsAt: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono text-[11px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-sans text-brand-ink-soft mb-1">Ends At Timestamp</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingCoupon.endsAt || ''} 
+                          onChange={(e) => setEditingCoupon({ ...editingCoupon, endsAt: e.target.value })}
+                          className="w-full bg-brand-paper border border-brand-line px-3 py-1.5 text-xs rounded-xl focus:outline-none font-mono text-[11px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 pt-2">
+                      <input 
+                        type="checkbox" 
+                        id="isActive"
+                        checked={editingCoupon.isActive}
+                        onChange={(e) => setEditingCoupon({ ...editingCoupon, isActive: e.target.checked })}
+                        className="rounded text-brand-teal focus:ring-brand-teal"
+                      />
+                      <label htmlFor="isActive" className="text-xs text-brand-ink-soft font-medium cursor-pointer select-none">
+                        Voucher is currently active and can be redeemed on checkout
+                      </label>
+                    </div>
+
+                    <button 
+                      type="submit"
+                      className="w-full bg-brand-teal hover:bg-brand-teal/90 text-brand-paper text-xs py-2 px-4 rounded-xl font-sans font-bold border-0 cursor-pointer select-none"
+                    >
+                      Publish Voucher Code
+                    </button>
+                  </form>
+                ) : (
+                  <div className="h-44 flex flex-col items-center justify-center text-center">
+                    <CheckSquare className="w-8 h-8 text-brand-teal/45 mb-2 animate-bounce" />
+                    <p className="text-xs text-brand-ink-soft font-sans font-medium">Select an existing coupon or click Create New Coupon to release platform-wide incentives.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 9. INVENTORY & REFILLS TAB (DYNAMIC MANAGEMENT & ALERTS) */}
+        {activeTab === 'inventory' && (
+          <div className="space-y-6 animate-in fade-in duration-300 font-sans mt-2" id="inventory-management-dashboard">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-brand-line pb-4">
+              <div>
+                <h3 className="font-serif font-black text-xl text-brand-ink">Inventory Controller & Auto Stock Refill</h3>
+                <p className="text-xs text-brand-ink-soft">Track real-time stock counts, configure auto-replenishment levels, and view system logistics telemetry logs.</p>
+              </div>
+              
+              <div className="flex flex-wrap gap-2.5">
+                {/* Auto Refill Mode Status Toggle */}
+                <button
+                  type="button"
+                  disabled={isUpdatingConfig}
+                  onClick={async () => {
+                    setIsUpdatingConfig(true);
+                    try {
+                      const currentVal = db.autoStockRefill;
+                      const res = await fetch('/api/config/refill', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled: !currentVal })
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        onRefreshDb();
+                        alert(`🔄 Auto stock refill system is now ${data.autoStockRefill ? 'ENABLED' : 'DISABLED'}`);
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setIsUpdatingConfig(false);
+                    }
+                  }}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all border-0 flex items-center space-x-1.5 cursor-pointer select-none ${
+                    db.autoStockRefill !== false
+                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm'
+                      : 'bg-stone-200 hover:bg-stone-300 text-stone-700'
+                  }`}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isUpdatingConfig ? 'animate-spin' : ''}`} />
+                  <span>Auto Stock Refill: {db.autoStockRefill !== false ? 'ACTIVE' : 'INACTIVE'}</span>
+                </button>
+
+                {/* Batch Refill All Trigger */}
+                <button
+                  type="button"
+                  disabled={isRefillingBatch}
+                  onClick={async () => {
+                    setIsRefillingBatch(true);
+                    try {
+                      const res = await fetch('/api/inventory/refill', { method: 'POST' });
+                      if (res.ok) {
+                        const data = await res.json();
+                        onRefreshDb();
+                        alert(`🎉 Stock replenishing completed! Autocast refilled ${data.refilledCount} low stock creations.`);
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setIsRefillingBatch(false);
+                    }
+                  }}
+                  className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper font-bold text-xs py-2 px-4 rounded-xl transition-all flex items-center space-x-1.5 border-0 cursor-pointer select-none shadow"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Quick Refill Low Stock Items</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Product Inventory Table */}
+              <div className="lg:col-span-8 bg-brand-paper border border-brand-line p-5 rounded-3xl shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-serif font-bold text-sm text-brand-ink flex items-center">
+                    <Package className="w-4 h-4 mr-1.5 text-brand-clay" /> Product Inventories Register ({db.products.length} Products lists)
+                  </h4>
+                  <span className="text-[10px] font-mono text-brand-ink-soft">CHANGES STREAM IN REAL TIME TO THE SHOP FRONTEND</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-brand-line text-brand-ink-soft uppercase text-[10px] tracking-wider">
+                        <th className="pb-2 font-medium">Product / SKU</th>
+                        <th className="pb-2 font-medium">Status Badge</th>
+                        <th className="pb-2 font-medium">Current Stock</th>
+                        <th className="pb-2 font-medium text-right font-bold text-brand-ink">Override Stock Level</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {db.products.map((p) => {
+                        const currentVal = manualStocks[p.id] !== undefined ? manualStocks[p.id] : p.inventory;
+                        let statusColor = 'bg-stone-100 text-stone-700';
+                        let statusLabel = 'In Stock';
+                        if (p.inventory <= 0) {
+                          statusColor = 'bg-red-100 text-red-700 border border-red-200';
+                          statusLabel = 'OUT of stock';
+                        } else if (p.inventory <= 4) {
+                          statusColor = 'bg-amber-100 text-amber-800 border border-amber-200';
+                          statusLabel = 'Low warning';
+                        } else {
+                          statusColor = 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+                          statusLabel = 'Healthy';
+                        }
+
+                        return (
+                          <tr key={p.id} className="border-b border-brand-line/50 hover:bg-brand-paper-dark/30 transition-all">
+                            <td className="py-3 pr-2">
+                              <div className="flex items-center space-x-2.5">
+                                <img src={p.images?.[0]?.url} alt="" className="w-10 h-10 object-cover rounded-lg border border-brand-line bg-stone-100" referrerPolicy="no-referrer" />
+                                <div>
+                                  <p className="font-serif font-bold text-brand-ink leading-tight">{p.title}</p>
+                                  <p className="text-[10px] font-mono text-brand-ink-soft">{p.sku}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3">
+                              <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md ${statusColor}`}>
+                                {statusLabel}
+                              </span>
+                            </td>
+                            <td className="py-3 font-mono font-bold text-sm">
+                              {p.inventory}
+                            </td>
+                            <td className="py-3 text-right">
+                              <div className="inline-flex items-center space-x-1.5">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={currentVal}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    setManualStocks({ ...manualStocks, [p.id]: val });
+                                  }}
+                                  className="w-14 bg-brand-paper border border-brand-line p-1 rounded-lg text-center font-mono font-bold focus:outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const payload = { ...p, inventory: currentVal };
+                                      const res = await fetch(`/api/db/products/${p.id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(payload)
+                                      });
+                                      if (res.ok) {
+                                        onRefreshDb();
+                                        alert(`✨ Stock updated successfully for "${p.title}"!`);
+                                      }
+                                    } catch (err) {
+                                      console.error(err);
+                                    }
+                                  }}
+                                  className="bg-brand-teal hover:bg-brand-teal-deep text-brand-paper text-[11px] px-2.5 py-1.5 rounded-xl font-sans font-bold border-0 cursor-pointer select-none"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Live Alerts & Notifications Feed Sidebar */}
+              <div className="lg:col-span-4 bg-brand-paper-dark/35 border border-brand-line p-5 rounded-3xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-serif font-black text-xs text-brand-ink flex items-center">
+                    <Activity className="w-4 h-4 mr-1 text-brand-clay animate-pulse" /> Live Telemetry Logs
+                  </h4>
+                  <span className="text-[9px] bg-brand-clay/10 text-brand-clay px-2 py-0.5 rounded font-mono font-bold">
+                    {(db.notifications || []).length} LOGS
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-brand-ink-soft leading-relaxed">Tracking platform payments, donations, low-stock warnings, and refill schedules.</p>
+
+                <div className="space-y-2.5 max-h-[450px] overflow-y-auto pr-1">
+                  {db.notifications && db.notifications.length > 0 ? (
+                    [...db.notifications].reverse().map((notif) => {
+                      let borderTheme = 'border-stone-200 bg-white/70';
+                      let iconColor = 'text-stone-500';
+
+                      if (notif.title?.includes('Refill') || notif.kind === 'inventory_refill') {
+                        borderTheme = 'border-green-200 bg-green-50/50';
+                        iconColor = 'text-green-600 font-bold';
+                      } else if (notif.title?.includes('Warning') || notif.title?.includes('Low') || notif.kind === 'inventory_alert') {
+                        borderTheme = 'border-amber-200 bg-amber-50/50';
+                        iconColor = 'text-amber-600 font-bold';
+                      } else if (notif.kind === 'order' || notif.title?.includes('Order')) {
+                        borderTheme = 'border-teal-200 bg-teal-50/50';
+                        iconColor = 'text-teal-600 font-bold';
+                      }
+
+                      return (
+                        <div key={notif.id} className={`p-3 rounded-2xl border text-xs shadow-xs space-y-1 transition-all ${borderTheme}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`font-serif ${iconColor}`}>{notif.title}</span>
+                            <span className="text-[9px] text-stone-400 font-mono">
+                              {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-stone-600 leading-relaxed font-sans">{notif.body}</p>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="h-32 flex flex-col items-center justify-center text-center">
+                      <p className="text-[11px] text-brand-ink-soft/45 font-sans">No operational logs recorded yet.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* 6. CAMPAIGNS TAB */}
-        {activeTab === 'campaigns' && (
-          <div className="space-y-6">
-            <h3 className="font-serif font-bold text-lg text-brand-ink flex items-center">
-              <Megaphone className="w-5 h-5 text-brand-clay mr-2" />
-              Welfare Campaigns & Milestone Disbursements
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {db.campaigns.map((c) => (
-                <div key={c.id} className="bg-brand-paper border border-brand-line rounded-2xl p-4 flex flex-col justify-between">
-                  <div>
-                    <h4 className="font-serif font-black text-brand-ink text-base">{c.title}</h4>
-                    <p className="text-xs text-brand-ink-soft mt-1 leading-relaxed">{c.beneficiarySummary}</p>
-                    
-                    <div className="mt-3 bg-brand-paper-dark/30 p-2.5 rounded-xl border border-brand-line/60">
-                      <span className="text-[10px] text-brand-clay font-black uppercase tracking-wider">Disbursement Milestones Ledger</span>
-                      <div className="mt-1 space-y-2">
-                        {c.disbursementMilestones.map((m, idx) => (
-                          <div key={idx} className="flex justify-between items-center text-[11px] border-b border-brand-line/50 pb-1.5 last:border-0 last:pb-0">
-                            <div>
-                              <p className="font-medium text-brand-ink">{m.stage}</p>
-                              <p className="text-[9px] text-brand-ink-soft">{m.releasedAt ? `Released on ${new Date(m.releasedAt).toLocaleDateString('en-IN')}` : 'Disbursement Planned'}</p>
-                            </div>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-mono leading-none ${m.status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
-                              {m.status === 'verified' ? `Verified ₹${m.amount/100}` : `Planned ₹${m.amount/100}`}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Add action to plan milestone */}
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const fd = new FormData(e.currentTarget);
-                    const stage = fd.get('stage') as string;
-                    const amount = parseInt(fd.get('amount') as string) * 100;
-                    if (!stage || !amount) return;
-
-                    const updatedCampaigns = db.campaigns.map(camp => {
-                      if (camp.id === c.id) {
-                        return {
-                          ...camp,
-                          disbursementMilestones: [
-                            ...camp.disbursementMilestones,
-                            { stage, amount, status: 'planned' }
-                          ]
-                        };
-                      }
-                      return camp;
-                    });
-
-                    fetch(`/api/db/campaigns/${c.id}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(updatedCampaigns.find(camp => camp.id === c.id))
-                    }).then(() => {
-                      onRefreshDb();
-                      alert('Disbursement milestone uploaded.');
-                    });
-                  }} className="mt-4 pt-3 border-t border-brand-line/50 grid grid-cols-2 gap-2">
-                    <input type="text" name="stage" placeholder="New planned stage description" className="bg-brand-paper border border-brand-line px-2 py-1 text-xs rounded-lg" required />
-                    <div className="flex space-x-1">
-                      <input type="number" name="amount" placeholder="₹ Amount" className="bg-brand-paper border border-brand-line px-2 py-1 text-xs rounded-lg w-20" required />
-                      <button type="submit" className="bg-brand-clay text-brand-paper text-[10px] px-2.5 py-1 rounded-lg">disburse</button>
-                    </div>
-                  </form>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

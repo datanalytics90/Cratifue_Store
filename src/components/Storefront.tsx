@@ -402,7 +402,7 @@ export default function Storefront({
   const filteredProducts = getProcessedProducts();
 
   return (
-    <div className="min-h-screen bg-brand-paper pb-16 paper-grain">
+    <div className="min-h-screen bg-brand-paper pb-0 paper-grain">
       
       {/* EXCLUSIVELANE-STYLE PREMIUM TOP PROMOTION TICKER */}
       <div className="bg-brand-teal text-brand-paper py-2 px-4 text-center text-xs select-none relative overflow-hidden flex items-center justify-between border-b border-white/5 md:px-8">
@@ -516,15 +516,24 @@ export default function Storefront({
         
         {/* VIEW: HOME PAGE */}
         {currentView === 'home' && (
-          <div className="space-y-16">
+          <div className="space-y-6">
             
             {/* 1. REDESIGNED PREMIUM HERO: RECTANGULAR BOX WITH RELATIVE PRODUCTS SLIDER */}
-            <div className="bg-gradient-to-br from-white via-[#F0F6FA] to-[#E2EEF2] border border-brand-line rounded-3xl p-6 sm:p-8 lg:p-10 shadow-lg relative overflow-hidden">
-              {/* Soft modern glowing vectors on the background */}
-              <div className="absolute top-0 right-0 w-96 h-96 bg-[#4FC3F7]/15 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-[#007799]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="border border-brand-line rounded-3xl p-6 sm:p-8 lg:p-10 shadow-lg relative overflow-hidden min-h-[500px] flex items-stretch">
+              {/* Full Width Glossy Background Image behind the Grounded Luxury Section */}
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src="https://images.unsplash.com/photo-1606744824163-985d376605aa?auto=format&fit=crop&q=80&w=1600" 
+                  alt="Glossy Handcrafted Studio Pottery" 
+                  className="w-full h-full object-cover object-center filter brightness-[1.03] contrast-[1.01]"
+                  referrerPolicy="no-referrer"
+                />
+                {/* Advanced glossy overlay representing light-blue combination matching theme */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-[#F0F6FA]/92 to-[#E2EEF2]/75 lg:bg-gradient-to-r lg:from-white/98 lg:via-white/90 lg:to-transparent" />
+                <div className="absolute inset-0 bg-radial-at-t from-[#4FC3F7]/10 via-transparent to-transparent pointer-events-none" />
+              </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch relative z-10">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch relative w-full z-10">
                 {/* Left Side: Elegant Narrative Text Box */}
                 <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
                   <div className="space-y-4">
@@ -1111,7 +1120,7 @@ export default function Storefront({
                   <>
                     <div className="md:col-span-4 h-64 rounded-2xl overflow-hidden border border-brand-line">
                       <img 
-                        src="https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=400" 
+                        src="https://images.unsplash.com/photo-1565192647048-f997ded879f0?auto=format&fit=crop&q=80&w=500" 
                         alt="Suman Devangan in workshop" 
                         className="w-full h-full object-cover hover:scale-102 transition-transform duration-300"
                         referrerPolicy="no-referrer"
@@ -1568,7 +1577,7 @@ export default function Storefront({
                   <img 
                     src={
                       activeArtForm === 'dhokra' 
-                        ? 'https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=650'
+                        ? 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=650'
                         : activeArtForm === 'pottery'
                         ? 'https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&q=80&w=650'
                         : activeArtForm === 'warli'
@@ -1583,46 +1592,7 @@ export default function Storefront({
               </div>
             </section>
 
-            {/* 14. NEW SECTION: BRAND TRUST METADATA CARD */}
-            <section className="bg-brand-paper border border-brand-line rounded-3xl p-6 md:p-8 space-y-6">
-              <div className="text-center max-w-xl mx-auto space-y-1">
-                <span className="text-[9px] font-mono uppercase bg-brand-line px-2 rounded font-bold text-brand-clay tracking-wider py-0.5">Physical trust index</span>
-                <h3 className="font-serif font-bold text-lg text-brand-ink uppercase">Handcrafted Standings & Integrity</h3>
-              </div>
-              
-              {/* Bento Trust Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center select-none">
-                <div className="bg-brand-paper-dark/35 border border-brand-line rounded-2xl p-5 space-y-2 hover:shadow-md transition-shadow">
-                  <div className="inline flex items-center justify-center p-3 bg-brand-clay text-brand-paper rounded-full mx-auto w-12 h-12">
-                    <Globe className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-serif font-bold text-sm text-brand-ink uppercase">Direct Trade Yield</h4>
-                  <p className="text-[11px] text-brand-ink-soft max-w-xs mx-auto leading-relaxed">
-                    Zero speculative middlemen. Over 78% of the final sales value is directly settled into the artisan cluster bank accounts within 48 hours.
-                  </p>
-                </div>
 
-                <div className="bg-brand-paper-dark/35 border border-brand-line rounded-2xl p-5 space-y-2 hover:shadow-md transition-shadow">
-                  <div className="inline flex items-center justify-center p-3 bg-brand-ochre text-brand-paper rounded-full mx-auto w-12 h-12">
-                    <Award className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-serif font-bold text-sm text-brand-ink uppercase">Generational Authenticity</h4>
-                  <p className="text-[11px] text-brand-ink-soft max-w-xs mx-auto leading-relaxed">
-                    Every element is handcrafted using oral family instructions dating several centuries. Rigorous cluster inspection prevents machine copies.
-                  </p>
-                </div>
-
-                <div className="bg-brand-paper-dark/35 border border-brand-line rounded-2xl p-5 space-y-2 hover:shadow-md transition-shadow">
-                  <div className="inline flex items-center justify-center p-3 bg-green-700 text-brand-paper rounded-full mx-auto w-12 h-12">
-                    <CheckCircle2 className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-serif font-bold text-sm text-brand-ink uppercase">Ecological Safety First</h4>
-                  <p className="text-[11px] text-brand-ink-soft max-w-xs mx-auto leading-relaxed">
-                    Chemical-free Slip washes, raw plant colors, and pure alloy casting metals assure completely food-safe and child-safe household ornaments.
-                  </p>
-                </div>
-              </div>
-            </section>
 
           </div>
         )}
@@ -1920,7 +1890,7 @@ export default function Storefront({
                 <div className="bg-brand-paper-dark/30 border border-brand-line p-5 rounded-3xl space-y-3">
                   <div className="flex items-center space-x-3">
                     <div className="w-14 h-14 rounded-full overflow-hidden bg-brand-paper border border-brand-line">
-                      <img src="https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=150" alt="Karigar face" className="w-full h-full object-cover" />
+                      <img src="https://images.unsplash.com/photo-1566616213894-2d4e1baee5d8?auto=format&fit=crop&q=80&w=150" alt="Karigar face" className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <span className="text-[9px] uppercase tracking-widest font-black text-brand-clay font-mono block">Featured Karigar</span>
@@ -1958,7 +1928,12 @@ export default function Storefront({
                 <div key={lb.id} className="bg-brand-paper border border-brand-line rounded-3xl p-6 space-y-4 shadow-sm flex flex-col justify-between">
                   <div className="space-y-3">
                     <div className="h-44 bg-stone-100 rounded-2xl flex items-center justify-center relative border border-brand-line">
-                      <img src="https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=400" alt={lb.title} className="w-full h-full object-cover rounded-2xl opacity-80" />
+                      <img 
+                        src={lb.id === 'lb_festive' ? 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=500' : 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=500'} 
+                        alt={lb.title} 
+                        className="w-full h-full object-cover rounded-2xl opacity-80" 
+                        referrerPolicy="no-referrer"
+                      />
                       <div className="absolute inset-0 bg-brand-ink/40 rounded-2xl flex flex-col items-center justify-center text-brand-paper p-4 text-center">
                         <span className="text-[9px] uppercase tracking-widest font-bold text-yellow-300">Trending Style Score: {lb.trendScore}</span>
                         <h3 className="font-serif font-bold text-lg mt-1">{lb.title}</h3>
@@ -2262,7 +2237,7 @@ export default function Storefront({
       {/* -------------------------------------------------------------- */}
       {/* 15. DYNAMIC EDITORIAL TESTIMONIALS & TRUSTED REVIEWS SECTION    */}
       {/* -------------------------------------------------------------- */}
-      <section className="bg-[#F0F6FA] border-t border-b border-brand-line py-16 px-4 sm:px-6 lg:px-8 select-none">
+      <section className="bg-[#F0F6FA] border-t border-b border-brand-line py-8 px-4 sm:px-6 lg:px-8 select-none">
         <div className="max-w-7xl mx-auto space-y-10">
           <div className="text-center space-y-2">
             <span className="text-[10px] font-mono uppercase tracking-widest text-[#007799] font-black bg-white/95 px-3 py-1 rounded-full border border-brand-line shadow-xs">
@@ -2284,7 +2259,7 @@ export default function Storefront({
                 clientName: "Meenakshie Sundaram",
                 designation: "Principal Interior Architect, SpaceForm Guild",
                 clientImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200",
-                craftImage: "https://images.unsplash.com/photo-1513519107129-14a172e38d75?auto=format&fit=crop&q=80&w=700",
+                craftImage: "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=700",
                 location: "Bengaluru, India"
               },
               {
@@ -2300,7 +2275,7 @@ export default function Storefront({
                 clientName: "Aditi Roy Chowdhury",
                 designation: "Visual Decor Lead, House of Hearth",
                 clientImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200",
-                craftImage: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=700",
+                craftImage: "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&q=80&w=700",
                 location: "Kolkata, India"
               }
             ];
@@ -2398,7 +2373,7 @@ export default function Storefront({
       {/* -------------------------------------------------------------- */}
       {/* 16. ELEGANT EXCLUSIVE BRAND FOOTER                              */}
       {/* -------------------------------------------------------------- */}
-      <footer className="bg-white border-t border-brand-line select-none mt-16 pb-12">
+      <footer className="bg-white border-t border-brand-line select-none mt-6 pb-6">
         
         {/* Newsletter Signup bar */}
         <div className="bg-[#F0F6FA]/60 border-b border-brand-line py-8 px-4 sm:px-6 lg:px-8">
