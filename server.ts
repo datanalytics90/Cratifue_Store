@@ -675,17 +675,33 @@ const DEFAULT_DB: DbSchema = {
 };
 
 // Seed DB on startup if it doesn't exist
+let inMemoryDbState: DbSchema | null = null;
+
 const ensureDbLoaded = (): DbSchema => {
+  if (inMemoryDbState) {
+    return inMemoryDbState;
+  }
+
   if (!fs.existsSync(DB_FILE)) {
     console.log('🌱 Seeding database store file initialized at', DB_FILE);
-    fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), 'utf8');
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), 'utf8');
+    } catch (e: any) {
+      console.warn('⚠️ Read-only/restricted filesystem. Storing state in-memory. Error:', e.message);
+      inMemoryDbState = DEFAULT_DB;
+      return DEFAULT_DB;
+    }
     return DEFAULT_DB;
   }
   try {
     const data = fs.readFileSync(DB_FILE, 'utf8');
     // Guard against empty files
     if (!data.trim()) {
-      fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), 'utf8');
+      try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), 'utf8');
+      } catch (e: any) {
+        console.warn('⚠️ Failed to repair empty DB file. Using in-memory fallback.');
+      }
       return DEFAULT_DB;
     }
     const parsed = JSON.parse(data);
@@ -693,15 +709,24 @@ const ensureDbLoaded = (): DbSchema => {
       parsed.autoStockRefill = true;
     }
     return parsed;
-  } catch (error) {
-    console.error('Error reading DB_FILE. Repairing and restoring default seed.', error);
-    fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), 'utf8');
+  } catch (error: any) {
+    console.error('Error reading DB_FILE. Repairing and restoring default seed.', error.message);
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2), 'utf8');
+    } catch (e: any) {
+      console.warn('⚠️ Failed to write repaired DB seed. Using in-memory fallback.');
+    }
     return DEFAULT_DB;
   }
 };
 
 const saveDb = (dbState: DbSchema) => {
-  fs.writeFileSync(DB_FILE, JSON.stringify(dbState, null, 2), 'utf8');
+  inMemoryDbState = dbState;
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(dbState, null, 2), 'utf8');
+  } catch (error: any) {
+    console.warn('⚠️ Read-only/restricted filesystem. Failed to persist saveDb state to DB_FILE. State kept in-memory.', error.message);
+  }
 };
 
 let db = ensureDbLoaded();

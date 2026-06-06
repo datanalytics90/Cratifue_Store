@@ -3,6 +3,7 @@ import { Loader2, Palette } from 'lucide-react';
 import Storefront from './components/Storefront';
 import AdminPanel from './components/AdminPanel';
 import { Product, Artisan, Category, Campaign, Coupon, Order, CartItem, CommissionEntry } from './types/firestore';
+import initialDb from '../db-craftifue.json';
 
 interface DatabaseState {
   products: Product[];
@@ -23,6 +24,236 @@ interface DatabaseState {
   notifications: any[];
   autoStockRefill: boolean;
 }
+
+// Global fetch interceptor for client-side offline / serverless / Vercel modes
+let isInterceptorSetup = false;
+const setupFetchInterceptor = (fallbackDb: any, setDbState: (db: any) => void) => {
+  if (isInterceptorSetup) return;
+  isInterceptorSetup = true;
+
+  const originalFetch = window.fetch;
+  
+  window.fetch = async function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+    
+    // Check if we should intercept this API request
+    if (url.startsWith('/api/')) {
+      const dbFromStorage = () => {
+        try {
+          const val = localStorage.getItem('craftifue_local_db');
+          return val ? JSON.parse(val) : fallbackDb;
+        } catch (e) {
+          return fallbackDb;
+        }
+      };
+      
+      const saveDbToStorage = (newDb: any) => {
+        try {
+          localStorage.setItem('craftifue_local_db', JSON.stringify(newDb));
+          setDbState(newDb);
+        } catch (e) {
+          console.error("Failed to save db to localStorage", e);
+        }
+      };
+      
+      // Match the endpoints
+      if (url === '/api/db') {
+        const currentDb = dbFromStorage();
+        return new Response(JSON.stringify(currentDb), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // /api/db/:collection
+      const dbCollectionMatch = url.match(/^\/api\/db\/([a-zA-Z0-9]+)$/);
+      if (dbCollectionMatch) {
+        const collection = dbCollectionMatch[1];
+        const currentDb = dbFromStorage();
+        if (init?.method === 'POST') {
+          const body = JSON.parse(init.body as string);
+          const newId = body.id || `local_${collection}_${Date.now()}`;
+          const newItem = { ...body, id: newId };
+          const updatedCollection = [newItem, ...(currentDb[collection] || [])];
+          const updatedDb = { ...currentDb, [collection]: updatedCollection };
+          saveDbToStorage(updatedDb);
+          return new Response(JSON.stringify(newItem), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        // GET
+        return new Response(JSON.stringify(currentDb[collection] || []), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // /api/db/:collection/:id
+      const dbItemMatch = url.match(/^\/api\/db\/([a-zA-Z0-9]+)\/([a-zA-Z0-9_\-]+)$/);
+      if (dbItemMatch) {
+        const collection = dbItemMatch[1];
+        const id = dbItemMatch[2];
+        const currentDb = dbFromStorage();
+        const collectionItems = currentDb[collection] || [];
+        
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(init.body as string);
+          const updatedCollection = collectionItems.map((item: any) => {
+            const itemId = item.id || item.uid;
+            if (itemId === id) {
+              return { ...item, ...body };
+            }
+            return item;
+          });
+          const updatedDb = { ...currentDb, [collection]: updatedCollection };
+          saveDbToStorage(updatedDb);
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        
+        if (init?.method === 'DELETE') {
+          const updatedCollection = collectionItems.filter((item: any) => {
+            const itemId = item.id || item.uid;
+            return itemId !== id;
+          });
+          const updatedDb = { ...currentDb, [collection]: updatedCollection };
+          saveDbToStorage(updatedDb);
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+      
+      if (url === '/api/checkout') {
+        const body = JSON.parse(init?.body as string);
+        const currentDb = dbFromStorage();
+        
+        const newOrder = {
+          id: `order_local_${Date.now()}`,
+          buyerUid: 'user_admin',
+          customerDetails: body.deliveryAddress,
+          items: body.items,
+          subtotalPaise: body.subtotal,
+          discountPaise: body.discount || 0,
+          shippingPaise: body.shippingFee || 0,
+          taxPaise: body.taxFee || 0,
+          totalPaise: body.total,
+          giftWrap: body.giftWrap || false,
+          paymentStatus: 'paid',
+          orderStatus: 'placed',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Deduct inventory
+        const updatedProducts = (currentDb.products || []).map((p: any) => {
+          const cartItem = body.items.find((item: any) => item.productId === p.id);
+          if (cartItem) {
+            return {
+              ...p,
+              inventory: Math.max(0, p.inventory - cartItem.quantity),
+              salesCount: (p.salesCount || 0) + cartItem.quantity
+            };
+          }
+          return p;
+        });
+        
+        const updatedDb = {
+          ...currentDb,
+          products: updatedProducts,
+          orders: [newOrder, ...(currentDb.orders || [])]
+        };
+        saveDbToStorage(updatedDb);
+        return new Response(JSON.stringify(newOrder), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url === '/api/donate') {
+        const body = JSON.parse(init?.body as string);
+        return new Response(JSON.stringify({ success: true, amount: body.amountPaise }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url === '/api/logo/config') {
+        const body = JSON.parse(init?.body as string);
+        const currentDb = dbFromStorage();
+        const updatedDb = {
+          ...currentDb,
+          logoConfig: {
+            ...currentDb.logoConfig,
+            ...body
+          }
+        };
+        saveDbToStorage(updatedDb);
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url === '/api/config/refill') {
+        const body = JSON.parse(init?.body as string);
+        const currentDb = dbFromStorage();
+        const updatedDb = {
+          ...currentDb,
+          autoStockRefill: body.enabled
+        };
+        saveDbToStorage(updatedDb);
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url === '/api/inventory/refill') {
+        const currentDb = dbFromStorage();
+        const updatedProducts = (currentDb.products || []).map((p: any) => {
+          if (p.inventory < 5) {
+            return { ...p, inventory: p.inventory + 12 };
+          }
+          return p;
+        });
+        const updatedDb = {
+          ...currentDb,
+          products: updatedProducts
+        };
+        saveDbToStorage(updatedDb);
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url === '/api/gemini/generate') {
+         const body = JSON.parse(init?.body as string);
+         const promptText = (body.prompt || '').toLowerCase();
+         let sampleText = "The masterpiece demonstrates incredible artistry, passed down through generations. Lovingly shaped with natural materials standard to our regional cluster, it celebrates the deep historical heritage.";
+         
+         if (promptText.includes('bio') || promptText.includes('biography')) {
+           sampleText = "Master of ancestral crafts, with a career spanning over four decades in the indigenous heartlands. Preserving lost metallurgy and oral patterns passed from parent to child with utmost meticulous accuracy.";
+         } else if (promptText.includes('story') || promptText.includes('narrative')) {
+           sampleText = "Deep in the tranquil regional groves, the craft begins on high-fired terracotta wheels before being hand-burnished under natural sunlight. Every motif echoes three centuries of continuous artistic dedication.";
+         } else if (promptText.includes('product') || promptText.includes('details') || promptText.includes('description')) {
+           sampleText = "Meticulously crafted using heavy copper alloys and pure mineral slip paints. Resistant to environmental wear, it provides high-contrast traditional geometric appeal fitting both heritage collections and minimal dining table layouts.";
+         }
+         return new Response(JSON.stringify({ response: sampleText }), {
+           status: 200,
+           headers: { 'Content-Type': 'application/json' }
+         });
+      }
+    }
+    
+    return originalFetch(input, init);
+  };
+};
 
 export default function App() {
   const [db, setDb] = useState<DatabaseState | null>(null);
@@ -61,13 +292,43 @@ export default function App() {
     try {
       const response = await fetch('/api/db');
       if (!response.ok) {
-        throw new Error('Could not pull live craft registries from server node.');
+        throw new Error('Server returned unsuccessful status ' + response.status);
       }
       const data = await response.json();
+      if (!data || typeof data !== 'object' || !data.products) {
+        throw new Error('Database is malformed.');
+      }
       setDb(data);
+      setErrorText('');
     } catch (err: any) {
-      console.error(err);
-      setErrorText(err.message || 'Connecting server error.');
+      console.warn('⚠️ Server database unreachable or malformed. Activating client-side localStorage fallback mode.', err.message);
+      
+      let localDb: any = null;
+      try {
+        const stored = localStorage.getItem('craftifue_local_db');
+        if (stored) {
+          localDb = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error('Failed to parse craftifue_local_db from localStorage', e);
+      }
+      
+      if (!localDb || !localDb.products) {
+        localDb = initialDb;
+        try {
+          localStorage.setItem('craftifue_local_db', JSON.stringify(localDb));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      
+      // Setup the global fetch interceptor with the local db state update callback
+      setupFetchInterceptor(localDb, (updatedDb) => {
+        setDb(updatedDb);
+      });
+      
+      setDb(localDb);
+      setErrorText(''); // Clear error to allow successful app rendering
     } finally {
       setIsLoading(false);
     }
@@ -80,10 +341,17 @@ export default function App() {
   const handleUpdateDatabase = (updatedData: Partial<DatabaseState>) => {
     setDb(prev => {
       if (!prev) return null;
-      return {
+      const next = {
         ...prev,
         ...updatedData
       };
+      // Keep localStorage in sync if running locally
+      try {
+        localStorage.setItem('craftifue_local_db', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
     });
   };
 
@@ -91,10 +359,16 @@ export default function App() {
   const handlePlaceOrder = (completedOrder: Order) => {
     setDb(prev => {
       if (!prev) return null;
-      return {
+      const next = {
         ...prev,
         orders: [completedOrder, ...prev.orders]
       };
+      try {
+        localStorage.setItem('craftifue_local_db', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
     });
     fetchLatestDatabaseState();
   };
