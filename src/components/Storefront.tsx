@@ -89,6 +89,31 @@ export default function Storefront({
 
   // Welfare Campaign Donation state
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+
+  // Karigar Studio Portal States
+  const [activeArtisanId, setActiveArtisanId] = useState<string>('');
+  const [karigarTab, setKarigarTab] = useState<'overview' | 'products' | 'bio'>('overview');
+  const [isSavingKarigarProduct, setIsSavingKarigarProduct] = useState<boolean>(false);
+  const [isGeneratingKarigarDescription, setIsGeneratingKarigarDescription] = useState<boolean>(false);
+  const [isGeneratingKarigarStory, setIsGeneratingKarigarStory] = useState<boolean>(false);
+  const [editingKarigarProduct, setEditingKarigarProduct] = useState<any | null>(null);
+  
+  const [karigarProductForm, setKarigarProductForm] = useState({
+    title: '',
+    artForm: '',
+    material: '',
+    price: 3499, 
+    inventory: 10,
+    category: 'Stoneware & Terracotta',
+    details: ''
+  });
+
+  const [karigarBioForm, setKarigarBioForm] = useState({
+    name: '',
+    region: '',
+    specialties: '',
+    bio: ''
+  });
   const [donationAmount, setDonationAmount] = useState<number>(1250); // ₹1,250 preset
   const [customDonationInput, setCustomDonationInput] = useState('');
   const [isDonating, setIsDonating] = useState(false);
@@ -481,6 +506,16 @@ export default function Storefront({
             >
               <Sparkles className="w-4 h-4 text-yellow-500 animate-bounce" />
               <span className="hidden sm:inline">My Spaces</span>
+            </button>
+
+            {/* Karigar Portal portal toggle */}
+            <button 
+              onClick={() => setCurrentView('karigar_portal')}
+              className="text-xs text-brand-ink-soft hover:text-brand-ink inline-flex items-center space-x-1 rounded-lg px-2 py-1 bg-brand-paper transition-all hover:bg-brand-paper-dark/65"
+              id="header-btn-karigar-portal"
+            >
+              <Award className="w-4 h-4 text-amber-600 font-bold" />
+              <span className="hidden sm:inline font-bold">Karigar Studio</span>
             </button>
 
             {/* Shopping Cart Trigger Icon */}
@@ -2228,6 +2263,650 @@ export default function Storefront({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW: KARIGAR PORTAL (ARTISAN WORKSHOP & DASHBOARD) */}
+        {currentView === 'karigar_portal' && (
+          <div className="space-y-6 animate-in fade-in duration-300 font-sans max-w-5xl mx-auto" id="karigar-portal-workspace">
+            {/* Header section with profile switcher */}
+            <div className="bg-[#FAF7F2] border border-[#E6DFD5] p-5 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="p-3 bg-brand-clay/10 rounded-full border border-brand-clay/20">
+                  <User className="w-6 h-6 text-brand-clay" />
+                </div>
+                <div>
+                  <h2 className="font-serif font-black text-xl text-brand-ink uppercase tracking-wide">👩‍🎨 Karigar Studio Portal</h2>
+                  <p className="text-xs text-brand-ink-soft">Direct-trade console for independent Indian artisans. Self-publish products, update bios with Gemini models, and audit payouts.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-brand-ink-soft text-right">Identify as:</span>
+                <select
+                  value={activeArtisanId}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    setActiveArtisanId(selectedId);
+                    if (selectedId) {
+                      const selectedArtisan = db.artisans.find(a => a.id === selectedId);
+                      if (selectedArtisan) {
+                        setKarigarBioForm({
+                          name: selectedArtisan.name,
+                          region: selectedArtisan.region,
+                          specialties: (selectedArtisan.craftSpecialty || []).join(', '),
+                          bio: selectedArtisan.bio
+                        });
+                      }
+                    }
+                  }}
+                  className="bg-white border border-brand-line text-xs rounded-xl px-3 py-1.5 focus:outline-none cursor-pointer text-brand-ink"
+                >
+                  <option value="">-- Choose Profile --</option>
+                  {db.artisans.map(a => (
+                    <option key={a.id} value={a.id}>{a.name} ({a.region.split(',')[0]})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {activeArtisanId ? (() => {
+              const activeArtisan = db.artisans.find(a => a.id === activeArtisanId)!;
+              
+              // Filter products of this artisan
+              const myProducts = db.products.filter(p => p.artisanId === activeArtisanId);
+              
+              // Handle earnings metrics
+              const myLedger = (db.commissionLedger || []).filter(e => e.artisanId === activeArtisanId);
+              const totalOnboarding = myLedger.filter(e => e.type === 'onboarding').reduce((s, e) => s + e.amount, 0);
+              const totalSalesEarned = myLedger.filter(e => e.type === 'sale').reduce((s, e) => s + e.amount, 0);
+              const totalAccumulated = myLedger.reduce((s, e) => s + e.amount, 0);
+              const pendingPayout = myLedger.filter(e => e.status !== 'paid').reduce((s, e) => s + e.amount, 0);
+              const settledPayouts = myLedger.filter(e => e.status === 'paid').reduce((s, e) => s + e.amount, 0);
+
+              return (
+                <div className="space-y-6">
+                  {/* Internal tabs selector */}
+                  <div className="flex border-b border-brand-line space-x-4">
+                    {[
+                      { id: 'overview', label: '💻 Workspace Overview' },
+                      { id: 'products', label: '🛋️ My Products Register' },
+                      { id: 'bio', label: '🪶 Profile & Story Studio' }
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setKarigarTab(t.id as any)}
+                        className={`pb-2.5 text-xs font-sans font-bold transition-all relative border-0 cursor-pointer ${
+                          karigarTab === t.id ? 'text-brand-clay border-b-2 border-brand-clay font-black bg-transparent' : 'text-brand-ink-soft hover:text-brand-ink bg-transparent'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* TAB 1: WORKSPACE OVERVIEW */}
+                  {karigarTab === 'overview' && (
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                      {/* Live balance ledger summaries */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { label: 'Onboarding Support Earned', val: totalOnboarding, desc: 'Direct registry reward' },
+                          { label: 'Direct Sale Commission (Your share)', val: totalSalesEarned, desc: 'Net earnings from orders' },
+                          { label: 'Accumulated Life Earnings', val: totalAccumulated, desc: 'Aggregated direct ledger values' },
+                          { label: 'Settled to Bank / Received', val: settledPayouts, desc: 'Wired to bank accounts directly' }
+                        ].map((card, id) => (
+                          <div key={id} className="border border-brand-line p-4 rounded-3xl bg-brand-paper shadow-xs">
+                            <span className="text-[9px] uppercase font-mono tracking-wider text-brand-ink-soft block mb-1 leading-normal">{card.label}</span>
+                            <span className="text-lg font-serif font-extrabold text-brand-ink block">
+                              ₹{(card.val / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                            <span className="text-[10px] text-brand-ink-soft/75 italic block mt-1">{card.desc}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Earnings entries table */}
+                      <div className="bg-brand-paper border border-brand-line p-5 rounded-3xl space-y-4">
+                        <div className="flex items-center justify-between border-b border-brand-line pb-2.5">
+                          <h4 className="font-serif font-black text-xs uppercase tracking-wide text-brand-ink">My Direct Earnings Ledger Rows</h4>
+                          <span className="text-[10px] bg-brand-clay/10 text-brand-clay font-mono px-2.5 py-1 rounded-lg border border-brand-clay/20 font-bold uppercase">
+                            Status: {pendingPayout > 0 ? 'Dues Outstanding' : 'Accounts Settled'}
+                          </span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs whitespace-nowrap">
+                            <thead>
+                              <tr className="border-b border-brand-line text-brand-ink-soft font-mono uppercase text-[9px] tracking-wider">
+                                <th className="py-2">Transaction ID</th>
+                                <th className="py-2">Type</th>
+                                <th className="py-2">Base Cost</th>
+                                <th className="py-2">Rate (%)</th>
+                                <th className="py-2">Net Earnings</th>
+                                <th className="py-2">Created At</th>
+                                <th className="py-2 text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {myLedger.length === 0 ? (
+                                <tr>
+                                  <td colSpan={7} className="py-12 text-center text-brand-ink-soft italic text-[11px]">
+                                    No ledger entries recorded for your karigar profile yet. Publish products and accept buyer checkouts to trigger payouts!
+                                  </td>
+                                </tr>
+                              ) : (
+                                [...myLedger].reverse().map((row) => {
+                                  let rowTagColor = 'bg-stone-50 text-stone-600';
+                                  if (row.status === 'accrued') rowTagColor = 'bg-amber-100/75 text-amber-800';
+                                  if (row.status === 'payable') rowTagColor = 'bg-green-100 text-green-800 font-bold';
+                                  if (row.status === 'paid') rowTagColor = 'bg-teal-100 text-teal-800';
+                                  if (row.status === 'reversed') rowTagColor = 'bg-red-100 text-red-800';
+
+                                  return (
+                                    <tr key={row.id} className="border-b border-brand-line/50 hover:bg-brand-paper-dark/30">
+                                      <td className="py-2 px-1 font-mono text-[10px] text-brand-clay font-bold">{row.id}</td>
+                                      <td className="py-2">
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${row.type === 'onboarding' ? 'bg-indigo-50 text-indigo-700' : 'bg-orange-50 text-orange-700'}`}>
+                                          {row.type === 'onboarding' ? 'Onboarding Support' : 'Product Sale'}
+                                        </span>
+                                      </td>
+                                      <td className="py-2 font-mono text-brand-ink-soft">₹{(row.baseAmount / 100).toFixed(2)}</td>
+                                      <td className="py-2 font-mono text-center">{row.ratePct}%</td>
+                                      <td className="py-2 font-mono font-bold text-brand-ink">₹{(row.amount / 100).toFixed(2)}</td>
+                                      <td className="py-2 text-brand-ink-soft text-[11px]">
+                                        {new Date(row.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                      </td>
+                                      <td className="py-2 text-center">
+                                        <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-full font-bold font-sans ${rowTagColor}`}>
+                                          {row.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 2: PRODUCTS CRUD */}
+                  {karigarTab === 'products' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-300">
+                      {/* Products editor side panel Form */}
+                      <form
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          setIsSavingKarigarProduct(true);
+                          try {
+                            const payload: any = {
+                              title: karigarProductForm.title,
+                              slug: karigarProductForm.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+                              sku: editingKarigarProduct?.sku || `SKU-KT-${Date.now().toString().slice(-6)}`,
+                              description: karigarProductForm.details,
+                              artisanId: activeArtisanId,
+                              price: Math.round(Number(karigarProductForm.price) * 100),
+                              mrp: Math.round(Number(karigarProductForm.price) * 115),
+                              discountPct: 15,
+                              inventory: Number(karigarProductForm.inventory),
+                              variants: [],
+                              status: 'active',
+                              ratingAvg: 4.8,
+                              ratingCount: 1,
+                              salesCount: editingKarigarProduct?.salesCount || 0,
+                              images: editingKarigarProduct?.images || [
+                                { url: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=600', primary: true, type: 'image' }
+                              ],
+                              pillar: (karigarProductForm.category === 'Lost Wax Alloys' ? 'decor' : 
+                                       karigarProductForm.category === 'Odia Silver Filigree' ? 'jewellery' : 
+                                       karigarProductForm.category === 'Regional Textile Weaves' ? 'decor' : 
+                                       karigarProductForm.category === 'Fibre-glass Decor' ? 'decor' : 'decor'),
+                              categoryPath: [karigarProductForm.category.toLowerCase().replace(/[^a-z0-9]+/g, '-')],
+                              material: [karigarProductForm.material],
+                              artForm: [karigarProductForm.artForm],
+                              colors: ['Natural'],
+                              tags: [karigarProductForm.material, karigarProductForm.artForm],
+                              isNew: true,
+                              createdAt: editingKarigarProduct?.createdAt || new Date().toISOString(),
+                              updatedAt: new Date().toISOString()
+                            };
+
+                            let url = `/api/db/products`;
+                            let method = 'POST';
+
+                            if (editingKarigarProduct) {
+                              url = `/api/db/products/${editingKarigarProduct.id}`;
+                              method = 'PUT';
+                              payload.id = editingKarigarProduct.id;
+                            } else {
+                              payload.id = `prod_${Date.now()}`;
+                            }
+
+                            const res = await fetch(url, {
+                              method,
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(payload)
+                            });
+
+                            if (res.ok) {
+                              // Trigger state sync and refresh list
+                              onRefreshDb();
+                              alert(`🎉 Product successfully ${editingKarigarProduct ? 'updated' : 'listed'} in marketplace registries.`);
+                              
+                              // Reset state
+                              setEditingKarigarProduct(null);
+                              setKarigarProductForm({
+                                title: '',
+                                artForm: '',
+                                material: '',
+                                price: 3499,
+                                inventory: 10,
+                                category: 'Stoneware & Terracotta',
+                                details: ''
+                              });
+                            } else {
+                              alert('Error saving product variant.');
+                            }
+                          } catch (err) {
+                            console.error(err);
+                          } finally {
+                            setIsSavingKarigarProduct(false);
+                          }
+                        }}
+                        className="lg:col-span-5 bg-white border border-brand-line p-5 rounded-3xl shadow-xs space-y-4"
+                      >
+                        <div className="border-b border-brand-line pb-2.5 flex items-center justify-between">
+                          <h4 className="font-serif font-black text-sm uppercase tracking-wider text-brand-ink">
+                            {editingKarigarProduct ? '✍️ Edit Listed Craft' : '🏺 List New Creation'}
+                          </h4>
+                          {editingKarigarProduct && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingKarigarProduct(null);
+                                setKarigarProductForm({
+                                  title: '',
+                                  artForm: '',
+                                  material: '',
+                                  price: 3499,
+                                  inventory: 10,
+                                  category: 'Stoneware & Terracotta',
+                                  details: ''
+                                });
+                              }}
+                              className="text-[10px] text-brand-clay font-bold underline bg-transparent border-0 cursor-pointer"
+                            >
+                              Reset to Create Form
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="space-y-3 font-sans text-brand-ink text-xs">
+                          <div>
+                            <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Product Title</label>
+                            <input
+                              type="text"
+                              required
+                              value={karigarProductForm.title}
+                              onChange={(e) => setKarigarProductForm({ ...karigarProductForm, title: e.target.value })}
+                              placeholder="e.g. Hand-Carved Terracotta Hanging Pendants"
+                              className="w-full bg-brand-paper border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none text-brand-ink font-bold"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Art Form</label>
+                              <input
+                                type="text"
+                                required
+                                value={karigarProductForm.artForm}
+                                onChange={(e) => setKarigarProductForm({ ...karigarProductForm, artForm: e.target.value })}
+                                placeholder="e.g. Terracotta Craft"
+                                className="w-full bg-brand-paper border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Materials Used</label>
+                              <input
+                                type="text"
+                                required
+                                value={karigarProductForm.material}
+                                onChange={(e) => setKarigarProductForm({ ...karigarProductForm, material: e.target.value })}
+                                placeholder="e.g. Clay & Jute Fibre"
+                                className="w-full bg-brand-paper border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Price (Rupees/₹)</label>
+                              <input
+                                type="number"
+                                required
+                                value={karigarProductForm.price}
+                                onChange={(e) => setKarigarProductForm({ ...karigarProductForm, price: Number(e.target.value) })}
+                                className="w-full bg-brand-paper border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Stock (Inventory)</label>
+                              <input
+                                type="number"
+                                required
+                                value={karigarProductForm.inventory}
+                                onChange={(e) => setKarigarProductForm({ ...karigarProductForm, inventory: Number(e.target.value) })}
+                                className="w-full bg-brand-paper border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Marketplace Category</label>
+                            <select
+                              value={karigarProductForm.category}
+                              onChange={(e) => setKarigarProductForm({ ...karigarProductForm, category: e.target.value })}
+                              className="w-full bg-brand-paper border border-brand-line rounded-xl px-3 py-2 text-xs focus:outline-none cursor-pointer text-brand-ink font-sans"
+                            >
+                              <option value="Stoneware & Terracotta">Stoneware & Terracotta</option>
+                              <option value="Lost Wax Alloys">Lost Wax Alloys</option>
+                              <option value="Fibre-glass Decor">Fibre-glass Decor</option>
+                              <option value="Regional Textile Weaves">Regional Textile Weaves</option>
+                              <option value="Odia Silver Filigree">Odia Silver Filigree</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-[11px] font-sans font-bold text-brand-ink-soft">Tactile Product Details</label>
+                              <button
+                                type="button"
+                                disabled={isGeneratingKarigarDescription || !karigarProductForm.title}
+                                onClick={async () => {
+                                  setIsGeneratingKarigarDescription(true);
+                                  try {
+                                    const res = await fetch('/api/gemini/generate', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        type: 'description',
+                                        payload: {
+                                          title: karigarProductForm.title,
+                                          artForm: karigarProductForm.artForm || 'Traditional Handicraft',
+                                          material: karigarProductForm.material || 'Organic Materials'
+                                        }
+                                      })
+                                    });
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      setKarigarProductForm(prev => ({ ...prev, details: data.content }));
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
+                                  } finally {
+                                    setIsGeneratingKarigarDescription(false);
+                                  }
+                                }}
+                                className="text-[10px] text-brand-teal hover:text-brand-clay font-bold flex items-center space-x-1 border-0 bg-transparent cursor-pointer"
+                              >
+                                {isGeneratingKarigarDescription ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin mr-1 text-brand-clay" />
+                                    <span>Crafting descriptions...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-3 h-3 text-yellow-500 mr-1 animate-bounce" />
+                                    <span>AI Copywriter</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                            <textarea
+                              required
+                              rows={4}
+                              value={karigarProductForm.details}
+                              onChange={(e) => setKarigarProductForm({ ...karigarProductForm, details: e.target.value })}
+                              placeholder="Write key manual attributes or use our specialized Gemini generator..."
+                              className="w-full bg-brand-paper border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none leading-relaxed text-brand-ink"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isSavingKarigarProduct}
+                            className="w-full bg-brand-clay hover:bg-brand-clay-deep disabled:opacity-50 text-white font-sans text-xs px-4 py-2.5 font-bold rounded-xl transition-all cursor-pointer border-0 shadow-sm"
+                          >
+                            {isSavingKarigarProduct ? 'Broadcasting specifications...' : (editingKarigarProduct ? 'Confirm Product Revisions' : 'Publish to Platform')}
+                          </button>
+                        </div>
+                      </form>
+
+                      {/* Products table list registry right column */}
+                      <div className="lg:col-span-7 bg-brand-paper border border-brand-line p-5 rounded-3xl space-y-4 shadow-xs">
+                        <div className="border-b border-brand-line pb-2.5">
+                          <h4 className="font-serif font-black text-xs uppercase tracking-wide text-brand-ink">My active published crafts registry</h4>
+                          <p className="text-[11px] text-brand-ink-soft">These items are live on the storefront directories and can be ordered immediately.</p>
+                        </div>
+
+                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                          {myProducts.length === 0 ? (
+                            <div className="h-44 flex flex-col items-center justify-center text-center">
+                              <p className="text-xs text-brand-ink-soft italic">No items listed. Use the left console to publish your first organic handicraft!</p>
+                            </div>
+                          ) : (
+                            myProducts.map(p => (
+                              <div key={p.id} className="bg-white border border-brand-line/60 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-xs">
+                                <div className="flex items-center space-x-3 truncate">
+                                  <img src={p.images[0]?.url} alt="" className="w-12 h-12 object-cover rounded-xl bg-stone-50 border border-brand-line/30" />
+                                  <div className="truncate text-left">
+                                    <h5 className="font-serif text-sm font-bold text-brand-ink truncate leading-snug">{p.title}</h5>
+                                    <span className="text-[10px] text-brand-ink-soft block mt-0.5 leading-none">SKU: {p.sku} | Price: ₹{(p.price / 100).toFixed(2)} | Stock: <b className="text-brand-ink">{p.inventory} units</b></span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingKarigarProduct(p);
+                                      setKarigarProductForm({
+                                        title: p.title,
+                                        artForm: p.artForm[0] || '',
+                                        material: p.material[0] || '',
+                                        price: Math.round(p.price / 100),
+                                        inventory: p.inventory,
+                                        category: p.pillar === 'jewellery' ? 'Odia Silver Filigree' : 'Stoneware & Terracotta',
+                                        details: p.description
+                                      });
+                                    }}
+                                    className="bg-brand-paper hover:bg-brand-paper-dark border border-brand-line text-brand-ink font-sans text-[10px] px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (confirm(`Remove product "${p.title}" permanently from directories?`)) {
+                                        try {
+                                          const res = await fetch(`/api/db/products/${p.id}`, { method: 'DELETE' });
+                                          if (res.ok) {
+                                            onRefreshDb();
+                                            alert('Product removed successfully.');
+                                          }
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      }
+                                    }}
+                                    className="bg-transparent hover:bg-red-50 text-brand-clay hover:text-red-700 font-sans text-[10px] px-2.5 py-1.5 rounded-lg border border-transparent hover:border-red-200 transition-all cursor-pointer select-none"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: ARTISAN BIO / STORY */}
+                  {karigarTab === 'bio' && (
+                    <div className="max-w-xl mx-auto bg-brand-paper border border-brand-line p-5 rounded-3xl space-y-5 animate-in fade-in duration-300 shadow-xs">
+                      <div className="border-b border-brand-line pb-3">
+                        <h4 className="font-serif font-black text-sm uppercase tracking-wider text-brand-ink">Profile Story & Creative Attributes</h4>
+                        <p className="text-[11px] text-brand-ink-soft">Maintain your biography directly shown to global luxury architecture collectors.</p>
+                      </div>
+
+                      <form
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const updatedArtisan = {
+                            ...activeArtisan,
+                            name: karigarBioForm.name,
+                            region: karigarBioForm.region,
+                            specialties: karigarBioForm.specialties.split(',').map(s => s.trim()).filter(Boolean),
+                            bio: karigarBioForm.bio
+                          };
+
+                          try {
+                            const res = await fetch(`/api/db/artisans/${activeArtisanId}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(updatedArtisan)
+                            });
+                            if (res.ok) {
+                              onRefreshDb();
+                              alert('🎉 Biography and specialties published update in databases successfully!');
+                            } else {
+                              alert('Error saving profile changes.');
+                            }
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        className="space-y-4 text-xs font-sans text-brand-ink"
+                      >
+                        <div>
+                          <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1 text-left">Artisan / Registered Maker Name</label>
+                          <input
+                            type="text"
+                            required
+                            value={karigarBioForm.name}
+                            onChange={(e) => setKarigarBioForm({ ...karigarBioForm, name: e.target.value })}
+                            className="w-full bg-white border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1 text-left">Weaving/Sourcing Cluster Region</label>
+                          <input
+                            type="text"
+                            required
+                            value={karigarBioForm.region}
+                            onChange={(e) => setKarigarBioForm({ ...karigarBioForm, region: e.target.value })}
+                            className="w-full bg-white border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1 text-left">Craft Specialties (Separate with commas)</label>
+                          <input
+                            type="text"
+                            required
+                            value={karigarBioForm.specialties}
+                            onChange={(e) => setKarigarBioForm({ ...karigarBioForm, specialties: e.target.value })}
+                            className="w-full bg-white border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[11px] font-sans font-bold text-brand-ink-soft">Artisan Generational Narrative</label>
+                            
+                            <button
+                              type="button"
+                              disabled={isGeneratingKarigarStory}
+                              onClick={async () => {
+                                setIsGeneratingKarigarStory(true);
+                                try {
+                                  const res = await fetch('/api/gemini/generate', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      type: 'story',
+                                      payload: {
+                                        name: karigarBioForm.name,
+                                        specialties: karigarBioForm.specialties.split(',').map(s => s.trim()),
+                                        region: karigarBioForm.region,
+                                        bio: karigarBioForm.bio || 'Generational traditional handicraft makers.'
+                                      }
+                                    })
+                                  });
+                                  if (res.ok) {
+                                    const data = await res.json();
+                                    setKarigarBioForm(prev => ({ ...prev, bio: data.content }));
+                                  }
+                                } catch (err) {
+                                  console.error(err);
+                                } finally {
+                                  setIsGeneratingKarigarStory(false);
+                                }
+                              }}
+                              className="text-[10px] text-brand-teal hover:text-brand-clay font-bold flex items-center space-x-1 border-0 bg-transparent cursor-pointer"
+                            >
+                              {isGeneratingKarigarStory ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                                  <span>Weaving story hooks...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-3 h-3 text-yellow-500 mr-1 animate-bounce" />
+                                  <span>Gemini AI Weaver</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          <textarea
+                            rows={5}
+                            required
+                            value={karigarBioForm.bio}
+                            onChange={(e) => setKarigarBioForm({ ...karigarBioForm, bio: e.target.value })}
+                            placeholder="Introduce your master heritage, design styles, and visual techniques..."
+                            className="w-full bg-white border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none leading-relaxed text-brand-ink"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-sans text-xs px-4 py-2.5 font-bold rounded-xl transition-all border-0 shadow-sm uppercase tracking-widest cursor-pointer"
+                        >
+                          Publish Biography Update
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                </div>
+              );
+            })() : (
+              <div className="border border-brand-line p-16 text-center rounded-3xl bg-brand-paper/50 h-72 flex flex-col items-center justify-center max-w-xl mx-auto">
+                <User className="w-10 h-10 text-brand-clay mb-3 animate-pulse" />
+                <h4 className="font-serif font-black text-sm uppercase tracking-widest text-brand-ink mb-1">Profile Identification Required</h4>
+                <p className="text-xs text-brand-ink-soft max-w-sm mx-auto leading-relaxed font-sans text-center">
+                  Select your craft maker profile from the dropdown corner above to securely verify your workshop dashboard ledger, personal credentials and products catalog list.
+                </p>
               </div>
             )}
           </div>

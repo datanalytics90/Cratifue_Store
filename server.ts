@@ -9,7 +9,30 @@ dotenv.config();
 
 const app = express();
 const PORT = 3000;
-const DB_FILE = path.join(process.cwd(), 'db-craftifue.json');
+const getDbFilePath = (): string => {
+  const primaryPath = path.join(process.cwd(), 'db-craftifue.json');
+  if (fs.existsSync(primaryPath)) {
+    return primaryPath;
+  }
+  try {
+    // Rely on __dirname in bundled CommonJS production mode
+    if (typeof __dirname !== 'undefined') {
+      const fallbackPath = path.join(__dirname, '..', 'db-craftifue.json');
+      if (fs.existsSync(fallbackPath)) {
+        return fallbackPath;
+      }
+      const fallbackPath2 = path.join(__dirname, 'db-craftifue.json');
+      if (fs.existsSync(fallbackPath2)) {
+        return fallbackPath2;
+      }
+    }
+  } catch (e) {
+    // ESM mode fallback
+  }
+  return primaryPath;
+};
+
+const DB_FILE = getDbFilePath();
 
 // Parse JSON bodies (increased limits for potential image uploads)
 app.use(express.json({ limit: '50mb' }));
@@ -822,7 +845,11 @@ app.post('/api/checkout', (req, res) => {
   const orderId = `order_${1000 + db.orders.length + 1}`;
   const invoiceNo = `CFT-2026-${1000 + db.orders.length + 1}`;
 
-  // Process items, reduce inventory and compute commission ledgerentries
+  // Read standard active commission rate dynamically from default profile
+  const defaultProfile = db.commissionProfiles?.find((p: any) => p.id === 'default') || { onboardingPct: 3, perSalePct: 5, onboardingBase: 1000000 };
+  const activeRatePct = defaultProfile.perSalePct || 5;
+
+  // Process items, reduce inventory and compute commission ledger entries
   const processedItems = items.map((cartItem: any) => {
     // Find matching product variant or main product
     const productIndex = db.products.findIndex((p: any) => p.id === cartItem.productId);
@@ -867,14 +894,14 @@ app.post('/api/checkout', (req, res) => {
     }
     return {
       ...cartItem,
-      commissionPct: 5 // snapshot standard 5%
+      commissionPct: activeRatePct
     };
   });
 
-  // Write Commission Entries in ledger (5% of selling amount per item in Paise)
+  // Write Commission Entries in ledger dynamically using activeRatePct (calculated in Paise)
   processedItems.forEach((item: any) => {
     const itemSubtotal = item.unitPrice * item.qty;
-    const commissionAmount = Math.round(itemSubtotal * 0.05);
+    const commissionAmount = Math.round(itemSubtotal * (activeRatePct / 100));
     
     const commissionId = `col_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const ledgerEntry = {
@@ -884,7 +911,7 @@ app.post('/api/checkout', (req, res) => {
       orderId,
       productId: item.productId,
       baseAmount: itemSubtotal,
-      ratePct: 5,
+      ratePct: activeRatePct,
       amount: commissionAmount,
       status: 'accrued',
       createdAt: new Date().toISOString(),
@@ -1067,7 +1094,7 @@ Please forecast future sales velocity, analyze catalog density, and provide stru
 
 // 2. Multimodal AI Copywriter (Artisan Story writer, Product desc generator, Outreach email drafter)
 app.post('/api/gemini/generate', async (req, res) => {
-  const { type, payload } = req.body; // type: 'story' | 'outreach' | 'description' | 'visual_spaces'
+  const { type, payload } = req.body; // type: 'story' | 'outreach' | 'description' | 'visual_spaces' | 'concatenate_chat'
 
   if (!payload) {
     return res.status(400).json({ error: 'Missing generation prompt payload' });
@@ -1082,6 +1109,19 @@ app.post('/api/gemini/generate', async (req, res) => {
     } else if (type === 'outreach') {
       return res.json({
         content: `Subject: Invitation to showcase your master craftsmanship on Craftifue\n\nDear ${payload.name || 'Artisan'}-ji,\n\nWe deeply admire your exceptional work in Bastar metal alloys. On Craftifue, we support organic master makers directly. We would love to onboard you into our registry, offer a dedicated profile page, and assign our default 3% onboarding support directly into your personal account ledger.\n\nWarmest regards,\nRD Craftifue India Team`
+      });
+    } else if (type === 'concatenate_chat' || type === 'chat') {
+      const q = (payload.promptText || payload.query || '').toLowerCase();
+      let responseText = "Our traditional karigars sculpt these masterpieces with local clays and lost-wax brass casts. They look spectacular when placed in soft warm-lit settings.";
+      if (q.includes('gift')) {
+        responseText = "For exquisite gifting options, I highly recommend our traditional lost-wax Dhokra copper castings or hand-carved terracotta decorative hanging bells under ₹2,000. They arrive in organic banana-fibre gifting boxes!";
+      } else if (q.includes('vastu') || q.includes('placement')) {
+        responseText = "According to Vastu tradition, terracotta planters prosper beautifully in the east or northeast zones of your living quarters. Our brass bell pendants look gorgeous hanging in entry balconies.";
+      } else if (q.includes('peacock') || q.includes('jewelry')) {
+        responseText = "Our handcrafted peacock motifs are designed in Odia silver filigree by Artisan Gopal. They pair beautifully with formal silk sarees or solid ethnic linen kurtas.";
+      }
+      return res.json({
+        content: responseText
       });
     } else {
       return res.json({
@@ -1103,6 +1143,9 @@ app.post('/api/gemini/generate', async (req, res) => {
     } else if (type === 'visual_spaces') {
       systemInstruction = 'You are an elite interior architecture AI decorator. Propose color schemes, styling layouts, and accessory variants matching the room description.';
       promptText = `Our premium item is: "${payload.productTitle}". The user uploaded their room image details: "${payload.roomDescription}". Propose how to position the item and what materials fit.`;
+    } else if (type === 'concatenate_chat' || type === 'chat') {
+      systemInstruction = 'You are a warm, traditional arts associate and elite customer care consultant of Craftifue. Ground your knowledge in high-end organic Indian handicrafts (Madhubani, Meenakari, Dhokra). Provide helpful placement tips, gifting suggestions, or historical trivia. Keep response highly concise (max 3 sentences) and warm.';
+      promptText = `${payload.promptText || payload.query}. Mention corresponding product materials (${payload.material || 'brass/clay'}) if applicable.`;
     } else {
       systemInstruction = 'You are a luxury editorial copywriter for premium Indian organic crafts. Write a highly tactile, evocative product description detailing manual touches, art formas, and home alignment.';
       promptText = `Draft a rich product description for handicraft called "${payload.title}" styled in art form "${payload.artForm}" using materials "${payload.material}".`;
@@ -1131,20 +1174,43 @@ app.post('/api/gemini/generate', async (req, res) => {
 /* ------------------------------------------------------------------ */
 
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    // Mount Vite dev middlewares
-    app.use(vite.middlewares);
-  } else {
-    // Production asset server
-    const distPath = path.join(process.cwd(), 'dist');
+  const hasFilename = typeof __filename !== 'undefined';
+  const isProduction = 
+    process.env.NODE_ENV === 'production' || 
+    (hasFilename && (__filename.includes('dist') || __filename.endsWith('server.cjs'))) ||
+    (!fs.existsSync(path.join(process.cwd(), 'server.ts')) && fs.existsSync(path.join(process.cwd(), 'dist')));
+
+  const distPath = path.join(process.cwd(), 'dist');
+
+  if (isProduction) {
+    console.log('📡 Starting in PRODUCTION mode serving pre-built assets.');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
+  } else {
+    try {
+      console.log('🔌 Starting in DEVELOPMENT mode with Vite dev middleware.');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      // Mount Vite dev middlewares
+      app.use(vite.middlewares);
+    } catch (e: any) {
+      console.error('⚠️ Failed to initialize Vite development server. Falling back to serving production build assets from /dist.', e);
+      if (fs.existsSync(distPath)) {
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(distPath, 'index.html'));
+        });
+      } else {
+        console.error('❌ CRITICAL: /dist folder not found. Cannot serve frontend components!');
+        app.get('*', (req, res) => {
+          res.status(500).send('Database active, but frontend distribution assets not built yet. Run npm run build.');
+        });
+      }
+    }
   }
 
   app.listen(PORT, '0.0.0.0', () => {

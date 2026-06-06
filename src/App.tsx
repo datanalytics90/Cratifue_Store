@@ -13,6 +13,8 @@ interface DatabaseState {
   lookbooks: any[];
   orders: Order[];
   commissionLedger: CommissionEntry[];
+  commissionProfiles: any[];
+  payouts: any[];
   logoConfig: {
     customImage: string | null;
     brandName: string;

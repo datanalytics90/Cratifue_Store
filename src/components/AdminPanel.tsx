@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart, TrendingUp, Package, Users, Palette, Compass, Activity, Check, Plus, Trash2, 
-  Sparkles, RotateCcw, Award, Mail, Calendar, CheckSquare, Megaphone, Loader2, RefreshCw 
+  Sparkles, RotateCcw, Award, Mail, Calendar, CheckSquare, Megaphone, Loader2, RefreshCw, HelpCircle
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend 
@@ -16,6 +16,8 @@ interface AdminPanelProps {
     campaigns: Campaign[];
     coupons: Coupon[];
     commissionLedger: CommissionEntry[];
+    commissionProfiles: any[];
+    payouts: any[];
     orders: any[];
     lookbooks: any[];
     logoConfig: { customImage: string | null; brandName: string; primaryColor: string };
@@ -27,7 +29,7 @@ interface AdminPanelProps {
 }
 
 export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelProps) {
-  const [activeTab, setActiveTab ] = useState<'analytics' | 'products' | 'artisans' | 'outreach' | 'logo' | 'campaigns' | 'lookbooks' | 'coupons' | 'inventory'>('analytics');
+  const [activeTab, setActiveTab ] = useState<'analytics' | 'products' | 'artisans' | 'outreach' | 'logo' | 'campaigns' | 'lookbooks' | 'coupons' | 'inventory' | 'commissions'>('analytics');
   
   // AI States
   const [isAiPredicting, setIsAiPredicting] = useState(false);
@@ -50,6 +52,28 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
   const [manualStocks, setManualStocks] = useState<Record<string, number>>({});
   const [isUpdatingConfig, setIsUpdatingConfig] = useState(false);
   const [isRefillingBatch, setIsRefillingBatch] = useState(false);
+
+  // Commissions and Settings States
+  const [commArtisanFilter, setCommArtisanFilter] = useState<string>(''); 
+  const [commStatusFilter, setCommStatusFilter] = useState<string>('');   
+  const [payoutReferenceNo, setPayoutReferenceNo] = useState<string>('');
+  const [defaultCommProfile, setDefaultCommProfile] = useState<any>({
+    id: 'default',
+    name: 'Standard Artisan Commission Profile',
+    onboardingPct: 3,
+    perSalePct: 5,
+    onboardingBase: 1000000,
+    returnWindowDays: 7,
+    isActive: true
+  });
+  const [isSavingCommProfile, setIsSavingCommProfile] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (db.commissionProfiles && db.commissionProfiles.length > 0) {
+      const p = db.commissionProfiles.find((x: any) => x.id === 'default') || db.commissionProfiles[0];
+      setDefaultCommProfile(p);
+    }
+  }, [db.commissionProfiles]);
 
   // Lead Outreach States (Phase 5 Expert Finder)
   const [outreachBrief, setOutreachBrief] = useState('Chanderi weavers & zari stitchers in Chanderi dist.');
@@ -456,6 +480,7 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
           { id: 'products', label: '🛋️ Products Register', icon: Package },
           { id: 'inventory', label: '⚙️ Inventory & Refills', icon: RefreshCw },
           { id: 'artisans', label: '🎭 Artisan Directory', icon: Users },
+          { id: 'commissions', label: '💵 Commissions & Settlements', icon: Award },
           { id: 'outreach', label: '🪶 Human CRM Finder', icon: Mail },
           { id: 'logo', label: '🎨 Site Logo & Brand', icon: Palette },
           { id: 'campaigns', label: '📢 Relief Campaigns', icon: Megaphone },
@@ -1980,6 +2005,444 @@ export default function AdminPanel({ db, onUpdateDb, onRefreshDb }: AdminPanelPr
                   ) : (
                     <div className="h-32 flex flex-col items-center justify-center text-center">
                       <p className="text-[11px] text-brand-ink-soft/45 font-sans">No operational logs recorded yet.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 10. COMMISSIONS & SETTLEMENTS TAB */}
+        {activeTab === 'commissions' && (
+          <div className="space-y-6 animate-in fade-in duration-300 font-sans mt-2" id="commissions-ledger-dashboard">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-line pb-4">
+              <div>
+                <h3 className="font-serif font-black text-xl text-brand-ink">Commission Engine & Artisan Settlements</h3>
+                <p className="text-xs text-brand-ink-soft">Configure platform-wide commission structures dynamically and register payout transactions for Indian artisans.</p>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {/* ADVANCE RETURNING POLICY BUTTON (Simulation button) */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const accrued = (db.commissionLedger || []).filter(e => e.status === 'accrued');
+                    if (accrued.length === 0) {
+                      alert('No accrued items in ledger to advance!');
+                      return;
+                    }
+                    if (confirm(`Do you want to fast-forward the return window of ${accrued.length} accrued commissions and mark them as payable?`)) {
+                      // Call Put request on each accrued item to turn into payable
+                      try {
+                        let updatedCount = 0;
+                        for (const entry of accrued) {
+                          const res = await fetch(`/api/db/commissionLedger/${entry.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ...entry, status: 'payable' })
+                          });
+                          if (res.ok) updatedCount++;
+                        }
+                        onRefreshDb();
+                        alert(`🕒 Successfully fast-forwarded return windows. Marked ${updatedCount} entries as "payable"!`);
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }
+                  }}
+                  className="bg-brand-paper hover:bg-brand-paper-dark text-brand-ink hover:text-brand-clay text-xs border border-brand-line px-3.5 py-2 rounded-xl transition-all font-sans font-bold select-none cursor-pointer"
+                >
+                  🕒 Fast-Forward Return Window
+                </button>
+
+                {/* CSV DOWNLOAD BUTTON */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const ledger = db.commissionLedger || [];
+                    const filtered = ledger.filter(e => {
+                      const matchArtisan = !commArtisanFilter || e.artisanId === commArtisanFilter;
+                      const matchStatus = !commStatusFilter || e.status === commStatusFilter;
+                      return matchArtisan && matchStatus;
+                    });
+
+                    if (filtered.length === 0) {
+                      alert('No ledger items found matching the current filters to export!');
+                      return;
+                    }
+
+                    let csvContent = "data:text/csv;charset=utf-8,";
+                    csvContent += "ID,Artisan ID,Type,Related Order,Base Amount (INR),Rate (%),Commission (INR),Status,Created At\n";
+                    
+                    filtered.forEach(e => {
+                      const artisan = db.artisans?.find(a => a.id === e.artisanId)?.name || e.artisanId;
+                      const baseInInr = (e.baseAmount / 100).toFixed(2);
+                      const commInInr = (e.amount / 100).toFixed(2);
+                      const row = `"${e.id}","${artisan}","${e.type}","${e.orderId || 'N/A'}",${baseInInr},${e.ratePct},${commInInr},"${e.status}","${e.createdAt}"`;
+                      csvContent += row + "\n";
+                    });
+
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `CRAFTIFUE_COMMISSION_LEDGER_${Date.now()}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="bg-brand-clay hover:bg-brand-clay-deep text-brand-paper text-xs px-3.5 py-2 rounded-xl transition-all font-sans font-bold select-none cursor-pointer border-0 shadow-xs"
+                >
+                  📥 Export Ledger to CSV
+                </button>
+              </div>
+            </div>
+
+            {/* Summarized metric cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { 
+                  label: 'Accrued Ledger Items (Future Payouts)', 
+                  val: (db.commissionLedger || []).filter(e => e.status === 'accrued').reduce((sum, e) => sum + e.amount, 0),
+                  color: 'text-amber-600 bg-amber-50/50' 
+                },
+                { 
+                  label: 'Payable Balance (Settlement Ready)', 
+                  val: (db.commissionLedger || []).filter(e => e.status === 'payable').reduce((sum, e) => sum + e.amount, 0),
+                  color: 'text-green-700 bg-green-50/50' 
+                },
+                { 
+                  label: 'Paid (Settled to Bank Accounts)', 
+                  val: (db.commissionLedger || []).filter(e => e.status === 'paid').reduce((sum, e) => sum + e.amount, 0),
+                  color: 'text-brand-teal bg-[#E8F3F1]/60' 
+                },
+                { 
+                  label: 'Commissions Reversed / Offset', 
+                  val: (db.commissionLedger || []).filter(e => e.status === 'reversed').reduce((sum, e) => sum + e.amount, 0),
+                  color: 'text-brand-clay bg-red-50/50' 
+                }
+              ].map((m, idx) => (
+                <div key={idx} className="border border-brand-line p-4 rounded-3xl bg-brand-paper shadow-xs">
+                  <p className="text-[10px] uppercase font-mono tracking-wider text-brand-ink-soft select-none mb-1 leading-normal">{m.label}</p>
+                  <p className={`text-xl font-serif font-extrabold ${m.color.split(' ')[0]}`}>
+                    ₹{(m.val / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left column: EDIT RULES / COMMISSION PROFILES */}
+              <div className="lg:col-span-5 bg-white border border-brand-line rounded-3xl p-5 shadow-xs space-y-4">
+                <div className="border-b border-brand-line pb-2 flex items-center space-x-1.5 leading-none">
+                  <Award className="w-4 h-4 text-brand-clay" />
+                  <h4 className="font-serif font-black text-sm uppercase tracking-wider text-brand-ink">Commission Profile Rules</h4>
+                </div>
+                <p className="text-[11px] text-brand-ink-soft leading-relaxed">
+                  Modify system rule book presets. These settings control onboarding bonuses and per-transaction fees collected on checkout.
+                </p>
+
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsSavingCommProfile(true);
+                  try {
+                    const res = await fetch(`/api/db/commissionProfiles/default`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(defaultCommProfile)
+                    });
+                    if (res.ok) {
+                      onRefreshDb();
+                      alert('🎉 Global Commission System rule profiles revised successfully!');
+                    } else {
+                      alert('Error updating system profiles.');
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsSavingCommProfile(false);
+                  }
+                }} className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Onboarding Support Credit Base (Rupees)</label>
+                    <input 
+                      type="number"
+                      required
+                      value={defaultCommProfile.onboardingBase / 100}
+                      onChange={(e) => setDefaultCommProfile({ 
+                        ...defaultCommProfile, 
+                        onboardingBase: Math.round(Number(e.target.value) * 100) 
+                      })}
+                      className="w-full bg-brand-paper text-brand-ink border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                    />
+                    <span className="text-[9px] text-brand-ink-soft/75 mt-1 block font-mono">Equivalent to {defaultCommProfile.onboardingBase} paise.</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Onboarding Bonus Rate (%)</label>
+                    <div className="flex items-center space-x-3">
+                      <input 
+                        type="range"
+                        min="0"
+                        max="15"
+                        step="1"
+                        value={defaultCommProfile.onboardingPct}
+                        onChange={(e) => setDefaultCommProfile({ 
+                          ...defaultCommProfile, 
+                          onboardingPct: Number(e.target.value) 
+                        })}
+                        className="flex-1 accent-brand-clay"
+                      />
+                      <span className="text-xs font-mono font-bold bg-brand-paper-dark px-2.5 py-1 rounded-lg border border-brand-line text-brand-ink">
+                        {defaultCommProfile.onboardingPct}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Per-Order Sale Commission Rate (%)</label>
+                    <div className="flex items-center space-x-3">
+                      <input 
+                        type="range"
+                        min="0"
+                        max="20"
+                        step="1"
+                        value={defaultCommProfile.perSalePct}
+                        onChange={(e) => setDefaultCommProfile({ 
+                          ...defaultCommProfile, 
+                          perSalePct: Number(e.target.value) 
+                        })}
+                        className="flex-1 accent-brand-clay"
+                      />
+                      <span className="text-xs font-mono font-bold bg-brand-paper-dark px-2.5 py-1 rounded-lg border border-brand-line text-brand-ink">
+                        {defaultCommProfile.perSalePct}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-sans font-bold text-brand-ink-soft mb-1">Customer Policy Return Window (Days)</label>
+                    <input 
+                      type="number"
+                      min="1"
+                      max="30"
+                      required
+                      value={defaultCommProfile.returnWindowDays}
+                      onChange={(e) => setDefaultCommProfile({ 
+                        ...defaultCommProfile, 
+                        returnWindowDays: Number(e.target.value) 
+                      })}
+                      className="w-full bg-brand-paper text-brand-ink border border-brand-line rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-brand-clay focus:outline-none"
+                    />
+                    <span className="text-[9px] text-brand-ink-soft/75 mt-1 block">Accrued items safely flag as payable after these many days.</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSavingCommProfile}
+                    className="w-full bg-brand-teal hover:bg-brand-teal/90 disabled:opacity-50 text-white font-sans text-xs px-4 py-2.5 font-bold rounded-xl transition-all cursor-pointer border-0 shadow-sm uppercase tracking-wider"
+                  >
+                    {isSavingCommProfile ? 'Revising Preset Rules...' : 'Save Rule Configuration'}
+                  </button>
+                </form>
+              </div>
+
+              {/* Right column: LEDGER & PAYOUTS DISPATCHER */}
+              <div className="lg:col-span-7 bg-brand-paper border border-brand-line rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div className="space-y-4 font-sans text-brand-ink">
+                  {/* Ledger Filters */}
+                  <div className="grid grid-cols-2 gap-2 border-b border-brand-line pb-3">
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase tracking-wider text-brand-ink-soft mb-1 font-bold">Filter Artisan</label>
+                      <select
+                        value={commArtisanFilter}
+                        onChange={(e) => setCommArtisanFilter(e.target.value)}
+                        className="w-full bg-brand-paper-dark/60 text-brand-ink border border-brand-line/80 px-2 py-1.5 rounded-xl text-xs focus:outline-none cursor-pointer"
+                      >
+                        <option value="">All Artisans</option>
+                        {db.artisans?.map(a => (
+                          <option key={a.id} value={a.id}>{a.name} ({a.region.split(',')[0]})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase tracking-wider text-brand-ink-soft mb-1 font-bold">Filter Status</label>
+                      <select
+                        value={commStatusFilter}
+                        onChange={(e) => setCommStatusFilter(e.target.value)}
+                        className="w-full bg-brand-paper-dark/60 text-brand-ink border border-brand-line/80 px-2 py-1.5 rounded-xl text-xs focus:outline-none cursor-pointer"
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="accrued">Accrued</option>
+                        <option value="payable">Payable</option>
+                        <option value="paid">Paid</option>
+                        <option value="reversed">Reversed</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* List ledger table limit 5 */}
+                  <div className="overflow-x-auto select-none">
+                    <table className="w-full text-left text-xs whitespace-nowrap">
+                      <thead>
+                        <tr className="border-b border-brand-line text-brand-ink-soft font-mono uppercase text-[10px]">
+                          <th className="py-2">Artisan</th>
+                          <th className="py-2">Type</th>
+                          <th className="py-2 text-right">Base Amount</th>
+                          <th className="py-2 text-center">Rate</th>
+                          <th className="py-2 text-right">Commission</th>
+                          <th className="py-2 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const items = (db.commissionLedger || []).filter(e => {
+                            const matchArtisan = !commArtisanFilter || e.artisanId === commArtisanFilter;
+                            const matchStatus = !commStatusFilter || e.status === commStatusFilter;
+                            return matchArtisan && matchStatus;
+                          });
+
+                          if (items.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={6} className="py-8 text-center text-brand-ink-soft italic text-[11px]">
+                                  No transaction entries recorded in filtered ledger.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return items.map((e) => {
+                            const artisan = db.artisans?.find(a => a.id === e.artisanId)?.name || 'Direct Trade';
+                            let statusColor = 'bg-stone-100 text-stone-700';
+                            if (e.status === 'accrued') statusColor = 'bg-amber-100 text-amber-800';
+                            if (e.status === 'payable') statusColor = 'bg-green-100 text-green-800 font-bold';
+                            if (e.status === 'paid') statusColor = 'bg-teal-100 text-teal-800';
+                            if (e.status === 'reversed') statusColor = 'bg-red-100 text-red-800';
+
+                            return (
+                              <tr key={e.id} className="border-b border-brand-line/50 hover:bg-brand-paper-dark/30">
+                                <td className="py-2 font-serif font-black text-brand-ink">{artisan}</td>
+                                <td className="py-2">
+                                  <span className={`text-[9px] uppercase font-mono px-1 rounded ${e.type === 'onboarding' ? 'bg-indigo-50 text-indigo-700' : 'bg-orange-50 text-orange-700'}`}>
+                                    {e.type}
+                                  </span>
+                                </td>
+                                <td className="py-2 text-right font-mono text-brand-ink-soft">₹{(e.baseAmount / 100).toFixed(2)}</td>
+                                <td className="py-2 text-center font-mono">{e.ratePct}%</td>
+                                <td className="py-2 text-right font-mono font-bold text-brand-ink">₹{(e.amount / 100).toFixed(2)}</td>
+                                <td className="py-2 text-center">
+                                  <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-full font-bold font-sans ${statusColor}`}>
+                                    {e.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Settle Payable Commissions */}
+                  {commArtisanFilter ? (() => {
+                    const selectedArtisanName = db.artisans?.find(a => a.id === commArtisanFilter)?.name || 'This Artisan';
+                    const payableComms = (db.commissionLedger || []).filter(e => e.artisanId === commArtisanFilter && e.status === 'payable');
+                    const outstandingPaise = payableComms.reduce((sum, e) => sum + e.amount, 0);
+
+                    return (
+                      <div className="mt-4 bg-brand-paper-dark/40 border border-brand-line rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h5 className="font-serif font-black text-xs uppercase tracking-wide text-brand-ink">Settle Balance to Bank for {selectedArtisanName}</h5>
+                            <p className="text-[10px] text-brand-ink-soft">Consolidate verified payable commissions ledger rows into paid statuses.</p>
+                          </div>
+                          <span className="text-xs bg-green-100 text-green-900 border border-green-200 py-1 px-2.5 rounded-lg font-mono font-bold">
+                            Outstanding: ₹{(outstandingPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        {outstandingPaise > 0 ? (
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input 
+                              type="text"
+                              required
+                              value={payoutReferenceNo}
+                              onChange={(e) => setPayoutReferenceNo(e.target.value)}
+                              placeholder="Transfer transaction reference..."
+                              className="flex-1 bg-brand-paper text-brand-ink placeholder:text-brand-ink-soft/60 px-3 py-1.5 rounded-xl text-xs border border-brand-line focus:ring-1 focus:ring-brand-clay focus:outline-none animate-pulse"
+                            />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!payoutReferenceNo.trim()) {
+                                  alert('Please enter bank transaction reference number.');
+                                  return;
+                                }
+                                if (confirm(`Authorize manual bank payout settlement to ${selectedArtisanName} for ₹${(outstandingPaise / 100).toFixed(2)}?`)) {
+                                  try {
+                                    // Settle each payable entry
+                                    const payoutId = `pay_${Date.now()}`;
+                                    for (const entry of payableComms) {
+                                      await fetch(`/api/db/commissionLedger/${entry.id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ ...entry, status: 'paid', payoutId })
+                                      });
+                                    }
+
+                                    // Record payout document in direct database payouts collection
+                                    await fetch(`/api/db/payouts`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        id: payoutId,
+                                        artisanId: commArtisanFilter,
+                                        amount: outstandingPaise,
+                                        status: 'paid',
+                                        method: 'bank_transfer',
+                                        reference: payoutReferenceNo,
+                                        initiatedBy: 'user_admin',
+                                        createdAt: new Date().toISOString()
+                                      })
+                                    });
+
+                                    // Push paid notification to artisan user
+                                    await fetch(`/api/db/notifications`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        uid: 'user_admin',
+                                        kind: 'payout',
+                                        title: '💰 Artisan Settlement Complete',
+                                        body: `Platform payout record ${payoutId} settled for ₹${(outstandingPaise / 100).toFixed(2)} to ${selectedArtisanName}.`,
+                                        read: false
+                                      })
+                                    });
+
+                                    setPayoutReferenceNo('');
+                                    onRefreshDb();
+                                    alert(`💸 Balance settled completely for ${selectedArtisanName}! Payout ledger recorded.`);
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }
+                              }}
+                              className="bg-brand-teal hover:bg-brand-teal/90 text-white text-xs px-4 py-2 rounded-xl transition-all font-sans font-bold select-none cursor-pointer border-0 shadow"
+                            >
+                              💰 Record Payout
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-brand-ink-soft italic font-sans text-center">Artisan has ₹0.00 in payable dues. Wait for return window policies or fast-forward active return windows manually.</p>
+                        )}
+                      </div>
+                    );
+                  })() : (
+                    <div className="bg-brand-paper-dark/35 border border-brand-line rounded-2xl p-6 text-center mt-4">
+                      <HelpCircle className="w-5 h-5 text-brand-clay pointer-events-none mx-auto mb-1 animate-pulse" />
+                      <p className="text-[12px] text-brand-ink-soft leading-normal">Select an onboarded artisan in filters to enable direct bank payouts.</p>
                     </div>
                   )}
                 </div>
